@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ilhas de Ayla — RPG cooperativo</title>
+<style>
+:root{--bg:#081b2e;--panel:#112c49;--line:#315d7d;--gold:#ffd166;--text:#f2f8ff;--muted:#b8cbe0;--cyan:#71dfec;--pink:#ff8db8}
+*{box-sizing:border-box}body{margin:0;padding:14px;color:var(--text);font:14px Verdana,Arial,sans-serif;background:radial-gradient(ellipse at top,#175070,#061526 74%);min-height:100vh}
+main{max-width:1360px;margin:auto}header{text-align:center;padding:8px 0 16px}h1{margin:0 0 6px;font-size:clamp(1.7rem,4vw,2.6rem);color:var(--gold)}header p{margin:0;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:14px;align-items:start}.panel{background:#112c49ed;border:1px solid var(--line);border-radius:15px;padding:13px;box-shadow:0 8px 26px #0003}.panel h2{font-size:1.08rem;color:var(--cyan);margin:0 0 10px}
+canvas{display:block;width:100%;height:auto;border:2px solid #3b7291;border-radius:10px;background:#2b845c;image-rendering:pixelated;outline:none}
+#hud{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.playercard{padding:9px;background:#071b2d;border:1px solid #2d536f;border-radius:11px}.playername{font-weight:bold;margin-bottom:6px;display:flex;gap:7px;align-items:center;justify-content:space-between}.tag{font-size:11px;color:#071b2d;background:#71dfec;padding:3px 6px;border-radius:10px}.bar{height:11px;background:#061321;border:1px solid #355875;border-radius:9px;overflow:hidden}.barfill{height:100%;width:100%;background:linear-gradient(90deg,#39d18b,#b4f26b);transition:width .12s}.bossfill{background:linear-gradient(90deg,#ff4b68,#ffb05d)}.meterline{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:5px 0 3px}
+.controls{font-size:12px;line-height:1.55;color:var(--muted);margin-top:8px}.controls b{color:#fff}
+button{border:0;border-radius:9px;padding:9px 11px;cursor:pointer;font-weight:bold;color:#062035;background:#6cd9e8;box-shadow:0 3px 0 #2a7a8c;font-size:12px}button:hover{filter:brightness(1.08)}button:active{transform:translateY(1px)}button:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(.5)}button.gold{background:var(--gold);box-shadow:0 3px 0 #9b7522}button.pink{background:var(--pink);box-shadow:0 3px 0 #a94f76}button.slate{background:#9cb2c6;box-shadow:0 3px 0 #506980}.btnrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}.btnrow button{flex:1}
+.side{display:flex;flex-direction:column;gap:12px}.rowitem{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #284967}.rowitem:last-child{border-bottom:0}.itemicon{width:37px;text-align:center;font-size:26px;flex-shrink:0}.itemdesc{flex:1;min-width:0}.itemdesc strong{display:block;font-size:12px}.itemdesc small{display:block;font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px}.buyrow{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.buyrow button{font-size:11px;padding:6px 8px}
+.small{font-size:11px;color:var(--muted);line-height:1.5}.chips{display:flex;gap:5px;flex-wrap:wrap}.chip{border:1px solid #3d6584;border-radius:18px;padding:5px 8px;font-size:11px;color:#d9e8f6}
+.bossimg{width:100%;max-height:150px;object-fit:cover;object-position:center 58%;border:1px solid #6d91ad;border-radius:10px;display:block;margin:5px 0 9px}
+#notice{min-height:37px;padding:9px 10px;background:#071b2d;border-radius:9px;margin-top:9px;color:#d8ecf9;font-size:12px;line-height:1.4}
+#log{height:112px;overflow:auto;background:#061522;border:1px solid #294b65;padding:8px;border-radius:9px;font-size:11px;line-height:1.45}#log p{margin:0 0 5px}
+.hidden{display:none!important}
+.questline{padding:9px;border:1px solid #365a77;border-radius:10px;margin:7px 0;background:#0b223a}.questline strong{display:block;margin-bottom:4px}.dialogue{border:1px solid #6aa3bc;background:#09233a;border-radius:12px;padding:11px;margin:8px 0}.dialogue strong{display:block;color:#ffd166;margin-bottom:5px}.dialogue p{font-size:12px;color:#e0edf8;line-height:1.5;margin:0 0 8px}.sectiontitle{font-size:12px;color:#ffd166;margin:12px 0 4px;border-top:1px solid #31536f;padding-top:10px}
+footer{text-align:center;padding:15px 0 5px;color:#91abc4;font-size:11px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .full{grid-column:1/-1}}
+@media(max-width:560px){.inventoryDetails{grid-template-columns:1fr}.inventoryWindow{padding:10px}.inventoryHeader h2{font-size:15px}body{padding:7px}.side{display:flex}.playername{font-size:12px}.hotbars{left:auto;right:4px;top:50%;bottom:auto;transform:translateY(-50%);width:min(48%,210px);display:flex;flex-direction:column;gap:4px}.hotbar{padding:4px}.hotbarTitle{font-size:10px;margin-bottom:3px}.slots{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}.slot{padding:4px 1px;min-height:40px;font-size:9px}.slot .emoji{font-size:16px;margin-bottom:1px}.hotbarhint{display:none}.mapInventoryBtn{right:5px;top:5px;padding:6px 8px}.mapWorldBtn{left:5px;top:5px;padding:6px 8px}.mapSaveBtn{left:72px;top:5px;padding:6px 8px}}
+
+#startScreen{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at top,#175070f5,#061526f7 75%);display:flex;align-items:center;justify-content:center;padding:18px}
+.startcard{max-width:560px;width:100%;padding:25px;background:#112c49;border:2px solid #4b87a8;border-radius:20px;box-shadow:0 20px 70px #0009;text-align:center}
+.startcard h2{color:#ffd166;font-size:clamp(1.5rem,4vw,2.3rem);margin:0 0 8px}.startcard p{color:#c3d8ea;line-height:1.5}.startchoices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.startchoices button{padding:16px 10px;font-size:15px}.startchoices small{display:block;font-size:11px;font-weight:normal;margin-top:5px}
+.mapStage{position:relative;margin-bottom:10px}.mapStage canvas{width:100%}.hotbars{position:absolute;left:auto;right:7px;top:auto;bottom:7px;transform:none;width:180px;display:flex;flex-direction:column;gap:4px;margin-top:0;pointer-events:none;z-index:3}.hotbar{pointer-events:auto;background:#061522ef;backdrop-filter:blur(3px)}.mapInventoryBtn{position:absolute;right:10px;top:10px;z-index:4;box-shadow:0 2px 0 #9b7522}.mapHotbarToggleBtn{position:absolute;right:132px;top:10px;z-index:4;background:#9cb2c6;box-shadow:0 2px 0 #506980}.mapWorldBtn{position:absolute;left:10px;top:10px;z-index:4;box-shadow:0 2px 0 #2a7a8c}.mapSaveBtn{position:absolute;left:112px;top:10px;z-index:4;box-shadow:0 2px 0 #9b7522}.worldMapCanvas{width:min(100%,672px)!important;height:auto;border:1px solid #4b87a8;border-radius:10px;margin:12px auto;background:#183651;image-rendering:pixelated}.mapLegend{display:flex;gap:12px;flex-wrap:wrap;color:#c3d8ea;font-size:11px;margin-top:6px}.mapLegend span{white-space:nowrap}.hotbar{background:#061522;border:1px solid #315d7d;border-radius:10px;padding:8px}.hotbarTitle{font-weight:bold;color:#ffd166;font-size:12px;margin-bottom:7px}.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.slot{padding:8px 3px;min-height:58px;background:#183651;color:#eef8ff;border:1px solid #4a7392;box-shadow:0 2px 0 #0a1724;font-size:11px}.slot .emoji{display:block;font-size:20px;margin-bottom:3px}.slot.selected{outline:2px solid #ffd166;background:#35536a}.slot:disabled{opacity:.4}.hotbarhint{font-size:10px;color:#b8cbe0;margin-top:6px}.inventoryShade{position:fixed;inset:0;z-index:9000;background:#020b14d9;display:flex;align-items:center;justify-content:center;padding:14px}.inventoryWindow{width:min(820px,100%);max-height:86vh;overflow:auto;background:#112c49;border:2px solid #4b87a8;border-radius:16px;padding:16px;box-shadow:0 18px 60px #000b}.inventoryHeader{display:flex;align-items:center;justify-content:space-between;gap:10px}.inventoryHeader h2{margin:0;color:#ffd166}.inventoryDetails{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.invCard{background:#071b2d;border:1px solid #315d7d;border-radius:10px;padding:12px}.invCard h3{margin:0 0 8px;color:#71dfec;font-size:14px}.invItem{padding:7px 0;border-bottom:1px solid #284967;font-size:12px;line-height:1.5}.invItem:last-child{border-bottom:0}.invItem .muted{color:#b8cbe0}.questTarget{padding:8px;border-radius:8px;background:#143b51;border:1px solid #4d879d;color:#d9f7ff;margin-top:6px;font-size:11px;line-height:1.5}
+
+/* Hotbar compacta no canto inferior direito do mapa */
+.hotbar{padding:5px;border-radius:8px}
+.hotbarTitle{font-size:10px;margin-bottom:4px}
+.slots{gap:3px}
+.slot{padding:4px 2px;min-height:39px;font-size:9px;line-height:1.1;border-radius:6px;box-shadow:0 1px 0 #0a1724}
+.slot .emoji{font-size:16px;margin-bottom:2px}
+.hotbarhint{font-size:9px;margin-top:3px}
+@media(max-width:560px){
+ .hotbars{right:4px;bottom:4px;top:auto;left:auto;transform:none;width:min(48%,176px);gap:3px}
+ .hotbar{padding:4px}
+ .hotbarTitle{font-size:9px;margin-bottom:3px}
+ .slots{grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+ .slot{padding:3px 1px;min-height:34px;font-size:8px;line-height:1.05}
+ .slot .emoji{font-size:14px;margin-bottom:1px}
+ .hotbarhint{display:none}
+}
+@media(max-width:560px){.mapHotbarToggleBtn{right:5px;top:42px;padding:6px 8px;font-size:10px}.hotbars{right:4px;width:min(48%,210px)}}
+
+.mapStage{position:relative}.raidHud{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(48%,440px);padding:8px 12px;border:1px solid #ffb4a8;border-radius:10px;background:rgba(37,15,27,.9);color:#fff;text-align:center;z-index:4;pointer-events:none}.raidTrack{height:12px;background:#351d2a;border:1px solid #f8c1c7;border-radius:10px;overflow:hidden;margin:4px 0}.raidTrack>div{height:100%;width:100%;background:linear-gradient(90deg,#ff4e68,#ffb34d);transition:width .15s}.worldControls{position:absolute;left:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;max-width:calc(100% - 20px);z-index:4;padding:6px;border-radius:9px;background:#071b25dd;color:#eaf9ff;font-size:12px}.worldControls button,.worldControls select{font-size:12px;padding:5px}.worldControls #levelInfo{font-weight:bold;color:#ffe58b;padding:4px 7px}.worldControls label{display:flex;gap:4px;align-items:center}.hidden{display:none!important}
+
+</style>
+</head>
+<body>
+<div id="startScreen"><div class="startcard"><h2>🏝️ Ilhas de Ayla</h2><p>Escolha solo ou dupla. O mapa foi otimizado para computadores mais lentos. Salve seu mundo, consulte o mapa e compre arcos para disparar flechas a distância.</p><div class="startchoices"><button id="startSolo" class="gold">🧙 Jogar sozinho<small>Um personagem · WASD</small></button><button id="startDuo" class="pink">🧑‍🤝‍🧑 Dois jogadores<small>WASD + setas · mesma tela ou tela dividida</small></button></div></div></div>
+<main>
+<header><h1>🏝️ Ilhas de Ayla: RPG Cooperativo</h1><p>Explore duas regiões com vilas seguras, lojas de arcos e armaduras, animais e missões de chefes!</p></header>
+<div class="layout">
+<section class="panel">
+<h2>🗺️ Mundo aberto — explore em dupla</h2>
+<div class="mapStage"><canvas id="world" width="960" height="576" tabindex="0" aria-label="Mapa do RPG"></canvas><button id="openWorldMap" class="mapWorldBtn">🗺️ Mapa</button><div id="raidHud" class="raidHud hidden"><strong id="raidHudName">RAID</strong><div class="raidTrack"><div id="raidHudFill"></div></div><small id="raidHudText"></small></div><div id="worldControls" class="worldControls"><div id="levelInfo">⭐ Nível 1 · XP 0/100</div><label>Magia: <select id="magicElement"><option value="fire">🔥 Fogo — queima</option><option value="ice">❄️ Gelo — congela</option><option value="lightning">⚡ Raio — paralisa</option></select></label><button id="tameButton" class="gold">🦴 Domesticar (0)</button><button id="boatButton" class="slate" disabled>⛵ Barco bloqueado</button></div><button id="saveWorldButton" class="gold mapSaveBtn">💾 Salvar</button><button id="openInventory" class="gold mapInventoryBtn">🎒 Inventário</button><button id="toggleHotbarButton" class="mapHotbarToggleBtn">🙈 Ocultar hotbar</button><div class="hotbars" id="hotbars"><div class="hotbar" id="hotbar1"><div class="hotbarTitle">Hotbar — Jogador 1</div><div class="slots" id="slots1"></div><div class="hotbarhint">Clique para equipar/usar.</div></div><div class="hotbar" id="hotbar2"><div class="hotbarTitle">Hotbar — Jogador 2</div><div class="slots" id="slots2"></div><div class="hotbarhint">Clique para equipar/usar.</div></div></div></div>
+<div id="hud">
+ <div class="playercard"><div class="playername"><span>🔷 <span id="p1name">Jogador 1</span></span><span class="tag">WASD</span></div>
+ <div class="meterline"><span>❤️ Vida</span><span id="p1hp">100/100</span></div><div class="bar"><div id="p1bar" class="barfill"></div></div>
+ <div class="meterline"><span>⚔️ Ataque</span><span id="p1atk">8</span></div><div class="small" id="p1gear">Espada de madeira</div><div class="small" id="p1gold">🪙 60 ouro</div></div>
+ <div class="playercard"><div class="playername"><span>🟠 <span id="p2name">Jogador 2</span></span><span class="tag">SETAS</span></div>
+ <div class="meterline"><span>❤️ Vida</span><span id="p2hp">100/100</span></div><div class="bar"><div id="p2bar" class="barfill"></div></div>
+ <div class="meterline"><span>⚔️ Ataque</span><span id="p2atk">8</span></div><div class="small" id="p2gear">Espada de madeira</div><div class="small" id="p2gold">🪙 60 ouro</div></div>
+</div>
+<div class="controls"><b>Jogador 1:</b> WASD move · E ataca/interage · Q lança magia de longo alcance se tiver cajado.<br><b>Jogador 2:</b> setas movem · Enter ataca/interage · M lança magia de longo alcance se tiver cajado.<br>Se ficarem longe um do outro, a tela se divide automaticamente em duas câmeras.</div>
+<div id="notice">🌟 Explore o mapa! Há uma loja e uma guilda perto da vila inicial.</div>
+<div class="btnrow"><button id="sprint1" class="pink">🏃 Correr J1: OFF</button><button id="sprint2" class="pink">🏃 Correr J2: OFF</button><button id="newWorld" class="slate">🌍 Gerar novo mundo</button></div>
+</section>
+<aside class="side">
+<section class="panel full">
+<h2>🧑‍🤝‍🧑 Criar os avatares</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+ <div><label class="small">Nome do Jogador 1</label><input id="name1" maxlength="12" value="Jogador 1" style="width:100%;margin-top:5px;padding:8px;background:#071b2d;color:white;border:1px solid #3b6685;border-radius:8px"></div>
+ <div><label class="small">Nome do Jogador 2</label><input id="name2" maxlength="12" value="Jogador 2" style="width:100%;margin-top:5px;padding:8px;background:#071b2d;color:white;border:1px solid #3b6685;border-radius:8px"></div>
+ <div><label class="small">Classe J1</label><select id="class1" style="width:100%;margin-top:5px;padding:8px;background:#071b2d;color:white;border:1px solid #3b6685;border-radius:8px"><option value="knight">Cavaleiro</option><option value="mage">Mago</option><option value="ranger">Arqueiro</option><option value="adventurer">Aventureiro</option></select></div>
+ <div><label class="small">Classe J2</label><select id="class2" style="width:100%;margin-top:5px;padding:8px;background:#071b2d;color:white;border:1px solid #3b6685;border-radius:8px"><option value="mage">Mago</option><option value="knight">Cavaleiro</option><option value="ranger">Arqueiro</option><option value="adventurer">Aventureiro</option></select></div>
+ <div><label class="small">Cor J1</label><input type="color" id="color1" value="#36d6e7" style="width:100%;height:34px;margin-top:5px"></div>
+ <div><label class="small">Cor J2</label><input type="color" id="color2" value="#ffae53" style="width:100%;height:34px;margin-top:5px"></div>
+</div>
+<div class="btnrow"><button id="applyAvatars" class="pink">✨ Aplicar avatares</button></div>
+</section>
+<section class="panel" id="shopPanel">
+<h2>🏪 Loja de armas, arcos e armaduras</h2><div id="shopLock" class="small">Encontre a Loja da Luma na vila e pressione E/Enter perto dela para abrir a loja.</div>
+<div id="shopItems" class="hidden">
+<p class="small">O dinheiro é separado. Cada jogador compra usando o próprio ouro.</p>
+<div id="weapons"></div><div class="sectiontitle">🛡️ Armaduras</div><div id="armors"></div>
+</div>
+</section>
+<section class="panel" id="questPanel">
+<h2>📜 Guilda de missões — incluindo chefes da região leste</h2><div id="questLock" class="small">Encontre a Guilda na vila e pressione E/Enter perto do quadro para receber missões.</div>
+<div id="questItems" class="hidden"></div>
+<div id="activeQuest" class="small" style="margin-top:8px">Missão ativa: nenhuma.</div>
+</section>
+<section class="panel full" id="raidPanel">
+<h2>⚔️ Raids — ondas de inimigos e recompensas</h2>
+<p class="small">Escolham uma raid para enfrentar várias ondas de inimigos juntos. Cada raid concluída dá uma grande recompensa em ouro e XP, além do loot dos monstros.</p>
+<div id="raidStatus" class="dialogue"><strong>Sem raid ativa</strong><p>Preparem armas, cajados e armaduras antes de começar. Os inimigos surgem perto da equipe.</p></div>
+<div class="btnrow"><button id="raidForest" class="gold">🌲 Raid da Floresta · 250 ouro</button><button id="raidRuins" class="pink">🏛️ Raid das Ruínas · 450 ouro</button><button id="raidDragon" class="slate">🐉 Raid do Dragão · 800 ouro</button></div>
+</section>
+<section class="panel">
+<h2>🎒 Mochila da equipe</h2><div class="chips" id="inventory"></div>
+<div class="small" style="margin-top:7px">🪙 Dinheiro separado: J1 <b id="gold1">60</b> ouro · J2 <b id="gold2">60</b> ouro. Cada um compra com o próprio dinheiro. 🌟 XP compartilhado.</div>
+</section>
+<section class="panel full">
+<h2>🐋 Ayla e os outros chefes</h2>
+<img class="bossimg" id="aylaPortrait" alt="Ayla, chefe final" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf6sAAAAASUVORK5CYII=">
+<div id="bossList" class="small">Chefes: Rei Slime · Guardião da Floresta · Dragão da Tempestade · Ayla, Rainha do Oceano.</div>
+<div class="small" style="margin-top:6px">Cada chefe tem uma barra de vida. Derrotem os chefes menores para conseguir ouro, XP e ficar fortes o bastante para desafiar Ayla!</div>
+</section>
+<section class="panel full"><h2>💬 Conversas com NPCs</h2><div id="dialogueBox" class="dialogue hidden"><strong id="dialogueTitle">NPC</strong><p id="dialogueText"></p><button id="dialogueClose" class="slate">Fechar diálogo</button></div><div id="log" aria-live="polite"><p>🌟 A aventura começa. Visitem a loja e a guilda!</p></div></section>
+</aside></div>
+<div id="inventoryModal" class="inventoryShade hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle"><div class="inventoryWindow"><div class="inventoryHeader"><h2 id="inventoryTitle">🎒 Inventário dos aventureiros</h2><button id="upgradeGear" class="gold">⚒️ Melhorar arma (ouro)</button><button id="repairGear" class="gold">🔧 Reparar equipamentos (ouro)</button><button id="closeInventory" class="slate">✖ Fechar</button></div><p class="small">Veja os equipamentos, armas que cada jogador possui, poções e itens do mundo.</p><div id="inventoryDetails" class="inventoryDetails"></div></div></div>
+<div id="worldMapModal" class="inventoryShade hidden" role="dialog" aria-modal="true" aria-labelledby="worldMapTitle"><div class="inventoryWindow"><div class="inventoryHeader"><h2 id="worldMapTitle">🗺️ Mapa completo das Ilhas de Ayla</h2><button id="closeWorldMap" class="slate">✖ Fechar mapa</button></div><p class="small">Visão geral do mundo: sua posição, a vila segura, monstros, baús e chefes. O mapa descoberto e o mundo são salvos automaticamente neste navegador.</p><canvas id="worldMapCanvas" class="worldMapCanvas" width="1120" height="768" aria-label="Mapa geral do mundo"></canvas><div class="mapLegend"><span>🔵 Jogador 1</span><span>🟠 Jogador 2</span><span>🔴 Monstros</span><span>🟡 Baús</span><span>🟣 Chefes</span><span>🟢 Vila segura</span><span>🔵 Rio divisório</span><span>🐾 Companheiros</span></div></div></div>
+<footer>Jogo HTML offline · Mundo salvo automaticamente no armazenamento local deste navegador</footer>
+</main>
+<script>
+setTimeout(function(){ try {
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const cv = $('world'), ctx=cv.getContext('2d');
+const TW=32, MAP_W=140, MAP_H=96, VW=cv.width, VH=cv.height;
+const SAVE_KEY='ilhasDeAyla_world_save_v3';
+let tiles=[],things=[],shots=[],particles=[],logs=[],ui='none',sharedXP=0,worldSeed=1,lastFrame=0,splitActive=false,lastAutoSave=0,lastWorldMapRender=0,lastDrawAt=0;
+let quest=null, questDone={}, bossesDead={}, playerCount=2, gameStarted=false;
+let boatUnlocked=false, tameItems=0, pets=[], magicElement='fire', lastPetAttack=0, durabilityTick=0;
+let raidState=null, raidSerial=0;
+const raidDefs={
+ forest:{id:'forest',name:'Raid da Floresta',waves:3,mobs:4,hp:75,atk:8,reward:250,xp:100,color:'#4ebc77',enemyName:'Lodo da Floresta'},
+ ruins:{id:'ruins',name:'Raid das Ruínas',waves:3,mobs:5,hp:115,atk:13,reward:450,xp:160,color:'#9275dd',enemyName:'Sentinela das Ruínas'},
+ dragon:{id:'dragon',name:'Raid do Dragão',waves:4,mobs:6,hp:170,atk:20,reward:800,xp:260,color:'#dc694a',enemyName:'Cultista Dracônico'}
+};
+const players=[
+ {id:1,name:'Jogador 1',x:11.5,y:13.5,color:'#36d6e7',klass:'knight',hp:100,maxHp:100,baseAtk:8,gold:60,sprinting:false,potions:2,weapon:{name:'Espada de madeira',kind:'sword',power:0,price:0},weapons:[{name:'Espada de madeira',kind:'sword',power:0,price:0}],relics:[],shield:false,armor:{name:'Roupa simples',defense:0,price:0},lastMove:0,lastAttack:0,magicCd:0,dir:{x:0,y:1}},
+ {id:2,name:'Jogador 2',x:13.5,y:13.5,color:'#ffae53',klass:'mage',hp:100,maxHp:100,baseAtk:8,gold:60,sprinting:false,potions:2,weapon:{name:'Espada de madeira',kind:'sword',power:0,price:0},weapons:[{name:'Espada de madeira',kind:'sword',power:0,price:0}],relics:[],shield:false,armor:{name:'Roupa simples',defense:0,price:0},lastMove:0,lastAttack:0,magicCd:0,dir:{x:0,y:1}}
+];
+const keyState=Object.create(null), keyPressed=Object.create(null);
+const weaponList=[
+  {name:'Espada de Ferro',kind:'sword',power:8,price:40,icon:'⚔️',desc:'Uma espada confiável para começar.'},
+  {name:'Cajado de Faísca',kind:'staff',power:10,price:65,icon:'🪄',desc:'Lança projéteis mágicos a longa distância.'},
+  {name:'Espada de Aço',kind:'sword',power:20,price:150,icon:'🗡️',desc:'Mais dano para enfrentar monstros.'},
+  {name:'Cajado da Tempestade',kind:'staff',power:25,price:220,icon:'✨',desc:'Projéteis longos, rápidos e fortes.'},
+  {name:'Lâmina Heroica',kind:'sword',power:39,price:420,icon:'⚔️',desc:'Uma arma poderosa para caçar chefes.'},
+  {name:'Cajado Astral',kind:'staff',power:48,price:600,icon:'🌟',desc:'Magia de elite, alcance longo e dano extremo.'},
+  {name:'Cajado de Cristal',kind:'staff',power:65,price:950,icon:'💎',desc:'Projéteis cristalinos com poder de perfuração.'},
+  {name:'Cajado Infernal',kind:'staff',power:84,price:1450,icon:'🔥',desc:'Magia flamejante de grande poder.'},
+  {name:'Cajado Celestial',kind:'staff',power:110,price:2200,icon:'☄️',desc:'Um dos cajados mais fortes das ilhas.'},
+  {name:'Cajado da Maré',kind:'staff',power:145,price:3500,icon:'🌊',desc:'Magia lendária criada para enfrentar Ayla.'},
+  {name:'Espada do Eclipse',kind:'sword',power:65,price:1250,icon:'🌘',desc:'Lâmina lendária com dano muito alto.'},
+  {name:'Espada das Marés',kind:'sword',power:95,price:2000,icon:'🔱',desc:'Uma arma rara para caçadores de chefes.'},
+  {name:'Arco de Caçador',kind:'bow',power:12,price:80,icon:'🏹',desc:'Dispara flechas a longa distância; use Q (J1) ou M (J2).'},
+  {name:'Arco Recurvo',kind:'bow',power:30,price:260,icon:'🏹',desc:'Um arco mais forte com flechas rápidas.'},
+  {name:'Arco Élfico',kind:'bow',power:62,price:820,icon:'🌿',desc:'Arco preciso para caçar monstros perigosos.'},
+  {name:'Arco das Marés',kind:'bow',power:105,price:1950,icon:'🌊',desc:'Arco lendário feito para enfrentar os chefes das ilhas.'}
+ ];
+const armorList=[
+ {name:'Jaqueta de Couro',defense:3,price:55,icon:'🦺',desc:'Proteção leve contra monstros.'},
+ {name:'Cota de Malha',defense:7,price:140,icon:'🥋',desc:'Boa proteção para aventuras longas.'},
+ {name:'Armadura de Ferro',defense:12,price:260,icon:'🛡️',desc:'Reduz bastante o dano recebido.'},
+ {name:'Armadura do Guardião',defense:19,price:490,icon:'🏰',desc:'Armadura reforçada para enfrentar dragões.'},
+ {name:'Armadura Astral',defense:27,price:780,icon:'✨',desc:'A proteção mais rara da loja.'}
+];
+const bossDefs=[
+ {id:'slime',name:'Rei Slime',x:30.5,y:22.5,hp:190,atk:12,reward:110,xp:70,icon:'slime'},
+ {id:'golem',name:'Guardião da Floresta',x:43.5,y:34.5,hp:350,atk:19,reward:220,xp:120,icon:'golem'},
+ {id:'dragon',name:'Dragão da Tempestade',x:52.5,y:65.5,hp:620,atk:26,reward:450,xp:180,icon:'dragon'},
+ {id:'hydra',name:'Hidra das Cinzas',x:96.5,y:24.5,hp:850,atk:30,reward:650,xp:240,icon:'hydra'},
+ {id:'titan',name:'Titã do Abismo',x:112.5,y:56.5,hp:1200,atk:33,reward:850,xp:300,icon:'golem'},
+ {id:'ayla',name:'Ayla, Rainha do Oceano',x:126.5,y:79.5,hp:2200,atk:38,reward:1600,xp:500,icon:'ayla'}
+];
+let bosses=[];
+function rand(n){return Math.floor(Math.random()*n)}
+function rrange(a,b){return a+Math.random()*(b-a)}
+function log(t){const p=document.createElement('p');p.textContent=t;$('log').prepend(p);while($('log').children.length>70)$('log').lastChild.remove()}
+function note(t){$('notice').textContent=t}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+// A vila inicial (x 3–25, y 6–22) é uma zona segura: inimigos não podem causar dano ali.
+function isSafeZone(x,y){return (x>=3&&x<25&&y>=6&&y<22)||(x>=79&&x<102&&y>=6&&y<21)}
+function saveWorld(manual=false){
+ try{
+  const data={version:3,savedAt:new Date().toISOString(),tiles,things:things.map(o=>({...o,lastShot:0,lastHit:0})),bosses:bosses.map(b=>({...b,lastShot:0,lastHit:0})),players:players.map(p=>({...p,lastMove:0,lastAttack:0,magicCd:0})),worldSeed,sharedXP,quest,questDone,bossesDead,raidState,raidSerial,playerCount,boatUnlocked,tameItems,pets,magicElement};
+  localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+  if(manual){$('saveWorldButton').textContent='✅ Salvo';note('💾 Mundo salvo no armazenamento local deste navegador.');setTimeout(()=>{if($('saveWorldButton'))$('saveWorldButton').textContent='💾 Salvar'},1400)}
+  return true;
+ }catch(err){if(manual)note('⚠️ Não foi possível salvar. Verifique se o navegador permite armazenamento local para este arquivo.');return false;}
+}
+function loadWorldState(){
+ try{
+  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;
+  const d=JSON.parse(raw);
+  if(!d||d.version!==3||!Array.isArray(d.tiles)||d.tiles.length!==MAP_H||!Array.isArray(d.things)||!Array.isArray(d.bosses)||!Array.isArray(d.players)||d.players.length<2)return false;
+  if(d.tiles.some(row=>!Array.isArray(row)||row.length!==MAP_W))return false;
+  tiles=d.tiles;things=d.things.map(o=>({...o,lastShot:0,lastHit:0}));bosses=d.bosses.map(b=>({...b,lastShot:0,lastHit:0}));
+  d.players.slice(0,2).forEach((saved,i)=>{Object.assign(players[i],saved);players[i].lastMove=0;players[i].lastAttack=0;players[i].magicCd=0;players[i].weapons=Array.isArray(players[i].weapons)?players[i].weapons:[players[i].weapon];players[i].relics=Array.isArray(players[i].relics)?players[i].relics:[];players[i].hp=Math.max(0,Math.min(Number(players[i].hp)||0,Number(players[i].maxHp)||100));if(players[i].hp<=0&&!players[i].respawning){players[i].respawning=true;players[i].respawnAt=Date.now()+700;}});
+  worldSeed=d.worldSeed||1;sharedXP=d.sharedXP||0;boatUnlocked=!!d.boatUnlocked;tameItems=d.tameItems||0;pets=Array.isArray(d.pets)?d.pets:[];magicElement=d.magicElement||'fire';quest=d.quest||null;questDone=d.questDone||{};bossesDead=d.bossesDead||{};raidState=d.raidState||null;raidSerial=d.raidSerial||0;playerCount=d.playerCount===1?1:2;shots=[];particles=[];
+  return true;
+ }catch(err){return false;}
+}
+function playerDeath(p,source='um inimigo'){
+ if(!p||p.hp>0||p.respawning)return;
+ p.hp=0;p.respawning=true;p.respawnAt=Date.now()+1400;
+ const lost=Math.floor((p.gold||0)*0.10);p.gold=Math.max(0,p.gold-lost);
+ log('💀 '+p.name+' foi derrotado por '+source+'! Perdeu '+lost+' moedas e vai renascer na vila.');
+ note('💀 '+p.name+' caiu em combate. Renascerá na vila segura em instantes.');
+ saveWorld(false);renderUI();
+}
+function updateRespawns(){
+ for(const p of players.slice(0,playerCount)){
+  if(!p.respawning||Date.now()<(p.respawnAt||0))continue;
+  p.x=p.id===1?13.2:15.0;p.y=8.5;p.hp=p.maxHp;p.respawning=false;p.respawnAt=0;p.sprinting=false;p.dir={x:0,y:1};
+  log('✨ '+p.name+' renasceu na Vila Segura com '+p.hp+'/'+p.maxHp+' de vida.');note('🏡 '+p.name+' renasceu na vila. A zona segura protege contra monstros.');renderUI();saveWorld(false);
+ }
+}
+function gearDamage(p){const durability=p.weapon&&p.weapon.durability;return p.baseAtk+((p.weapon.power||0)*(durability===undefined||durability>0?1:0))}
+function wearWeapon(p){if(p.weapon&&p.weapon.kind!=='sword'&&p.weapon.kind!=='staff'&&p.weapon.kind!=='bow')return;if(p.weapon){if(p.weapon.durability===undefined)p.weapon.durability=durabilityMax(p.weapon);p.weapon.durability=Math.max(0,p.weapon.durability-1);if(p.weapon.durability===0)note('⚠️ '+p.weapon.name+' quebrou! Visite a Forja de Brasa para reparar ou comprar outra.');}}
+function durabilityMax(w){return 70+Math.max(0,w.power||0)*4}
+function wearShield(p){if(!p.shield)return;if(p.shieldDurability===undefined)p.shieldDurability=120;p.shieldDurability=Math.max(0,p.shieldDurability-1);if(p.shieldDurability===0){p.shield=false;note('🛡️ O escudo quebrou! Repare na forja.')}}
+function showDialogue(title,text){$('dialogueTitle').textContent=title;$('dialogueText').textContent=text;$('dialogueBox').classList.remove('hidden');log('💬 '+title+': '+text)}
+function nearestHostile(p,maxD=28){let candidates=[...things.filter(o=>o.type==='monster'),...bosses.filter(b=>b.alive)];let best=null,bd=maxD;for(const o of candidates){const d=Math.hypot(o.x-p.x,o.y-p.y);if(d<bd){bd=d;best=o}}return best}
+function randCoord(){return {x:2+rand(MAP_W-4),y:2+rand(MAP_H-4)}}
+function at(x,y){return tiles[Math.floor(y)]?.[Math.floor(x)]}
+function setTile(x,y,type){if(tiles[y]&&tiles[y][x])tiles[y][x]=type}
+function clearArea(cx,cy,rx,ry){for(let y=Math.max(0,Math.floor(cy-ry));y<=Math.min(MAP_H-1,Math.ceil(cy+ry));y++)for(let x=Math.max(0,Math.floor(cx-rx));x<=Math.min(MAP_W-1,Math.ceil(cx+rx));x++)tiles[y][x]='path'}
+function road(x1,y1,x2,y2){let x=x1,y=y1;clearArea(x,y,1,1);while(x!==x2){x+=Math.sign(x2-x);clearArea(x,y,1,0)}while(y!==y2){y+=Math.sign(y2-y);clearArea(x,y,0,1)}}
+function occupied(x,y){return things.some(o=>Math.floor(o.x)===Math.floor(x)&&Math.floor(o.y)===Math.floor(y))||bosses.some(b=>Math.floor(b.x)===Math.floor(x)&&Math.floor(b.y)===Math.floor(y))}
+function placeThing(type,n,extra={}){let count=0,tries=0;while(count<n&&tries<n*100){tries++;let x=3+rand(MAP_W-6),y=3+rand(MAP_H-6);if(tiles[y][x]==='water'||tiles[y][x]==='tree'||tiles[y][x]==='rock'||Math.hypot(x-12,y-12)<7||(type==='monster'&&isSafeZone(x+.5,y+.5))||occupied(x,y))continue;let attrs={};if(type==='monster'){let hp=50+rand(31);attrs={hp,maxHp:hp,reward:8+rand(13),xp:18+rand(8),name:['Slime','Morcego Sombrio','Goblin'][rand(3)],color:['#a747ca','#4887d7','#bd6c46'][rand(3)],lastHit:0}}things.push({type,x:x+.5,y:y+.5,...attrs,...extra});count++}}
+function generateWorld(){
+ worldSeed++;tiles=Array.from({length:MAP_H},(_,y)=>Array.from({length:MAP_W},(_,x)=>{
+ if(x===0||y===0||x===MAP_W-1||y===MAP_H-1)return 'water';
+ let r=Math.random();if(r<.07)return 'water';if(r<.16)return 'tree';if(r<.20)return 'rock';return 'grass';
+ }));
+ things=[];shots=[];particles=[];
+ // A safe village and roads connecting the large island to boss regions
+ clearArea(13,13,11,8);
+ for(let y=6;y<=21;y++)for(let x=3;x<=24;x++)tiles[y][x]='grass';
+ // Rio largo divide o mundo em duas regiões; a passagem só abre após derrotar o Dragão da Tempestade.
+ for(let y=1;y<MAP_H-1;y++)for(let x=67;x<=72;x++)tiles[y][x]='water';
+ for(let x=68;x<=72;x++)tiles[65][x]='path';
+ road(12,13,30,22);road(30,22,43,34);road(43,34,52,65);
+ road(74,65,96,24);road(96,24,112,56);road(112,56,126,79);
+ // Clear boss arenas and keep a navigable ring around each boss
+ for(const b of bossDefs)clearArea(b.x,b.y,4,3);
+ bosses=bossDefs.map(b=>({...b,currentHp:b.hp,alive:!bossesDead[b.id],lastHit:0}));
+ for(let y=0;y<MAP_H;y++){tiles[y][0]='water';tiles[y][MAP_W-1]='water'}
+ // Ponte de pedra fica bloqueada até o barco ser liberado.
+ if(!boatUnlocked)for(let x=68;x<=72;x++)tiles[65][x]='water';else for(let x=68;x<=72;x++)tiles[65][x]='path';
+ for(let x=0;x<MAP_W;x++){tiles[0][x]='water';tiles[MAP_H-1][x]='water'}
+ things.push(
+  {type:'shop',x:8.5,y:10.5,label:'Loja da Luma',npc:'Luma'},
+  {type:'guild',x:18.5,y:10.5,label:'Guilda de Missões',npc:'Capitão Nilo'},
+  {type:'blacksmith',x:8.5,y:17.5,label:'Forja de Brasa',npc:'Brasa'},
+  {type:'clinic',x:18.5,y:17.5,label:'Casa da Curandeira',npc:'Mira'},
+  {type:'inn',x:13.5,y:7.5,label:'Pousada da Concha',npc:'Téo'},
+  {type:'elder',x:13.5,y:19.5,label:'Anciã das Ilhas',npc:'Anciã Lua'},
+  // Segunda vila segura, do outro lado do rio: os mesmos serviços estão disponíveis.
+  {type:'shop',x:84.5,y:10.5,label:'Loja de Coral',npc:'Coral'},
+  {type:'guild',x:96.5,y:10.5,label:'Guilda da Maré',npc:'Capitã Marina'},
+  {type:'blacksmith',x:84.5,y:17.5,label:'Forja das Ondas',npc:'Nácar'},
+  {type:'clinic',x:96.5,y:17.5,label:'Casa de Cura do Coral',npc:'Dora'},
+  {type:'inn',x:90.5,y:7.5,label:'Pousada do Farol',npc:'Faroleiro Tom'},
+  {type:'elder',x:90.5,y:19.5,label:'Ancião da Maré',npc:'Ancião Mar'}
+ );
+ // Construir a vila da segunda região e ligar sua estrada à arena da Hidra.
+ for(let y=6;y<=20;y++)for(let x=79;x<=101;x++)tiles[y][x]='grass';
+ clearArea(90,13,11,7);road(90,20,96,24);
+ // Welcome area has obvious starter chests/enemies
+ things.push({type:'chest',x:7.5,y:15.5,opened:false},{type:'chest',x:17.5,y:15.5,opened:false});
+ placeThing('chest',34);placeThing('monster',48);placeThing('animal',34);placeThing('herb',16);
+ // Animais garantidos nas duas regiões para que não dependam apenas do sorteio.
+ [[27.5,17.5],[33.5,28.5],[39.5,39.5],[48.5,48.5],[56.5,71.5],
+  [78.5,25.5],[83.5,27.5],[88.5,31.5],[103.5,35.5],[108.5,46.5],[118.5,66.5],[123.5,72.5]].forEach(([x,y],i)=>{
+   if(!things.some(o=>o.type==='animal'&&Math.hypot(o.x-x,o.y-y)<2))things.push({type:'animal',x,y,name:['Coelho','Raposa','Capivara','Pássaro'][i%4]});
+ });
+ bosses=bossDefs.map(b=>({...b,currentHp:b.hp,alive:!bossesDead[b.id],lastHit:0}));
+ players[0].x=11.5;players[0].y=14.5;players[1].x=14.5;players[1].y=14.5;players.forEach(p=>{p.level=p.level||1;p.pets=p.pets||[]});
+ ui='none';worldDraw(performance.now());renderUI();
+ note('🛡️ Existem duas vilas seguras: a Vila Inicial e a Vila do Coral, do outro lado do rio. Ambas têm loja, guilda e forja.');
+ log('🌍 Novo mundo gerado: 140 × 96 tiles, duas regiões separadas por um grande rio e seis arenas de chefes.');
+}
+function tileBlocked(x,y){const t=at(x,y);return !t||['water','tree','rock'].includes(t)}
+ function canMove(p,nx,ny){
+  if(tileBlocked(nx,ny))return false;
+  for(const other of players){if(other!==p&&Math.hypot(other.x-nx,other.y-ny)<.45)return false}
+  return true;
+ }
+ function tryMove(p,dx,dy,now){
+  if(!p||p.hp<=0||p.respawning)return;
+  const delay=p.sprinting?55:105;
+  if(now-p.lastMove<delay)return;
+  p.lastMove=now;p.dir={x:dx,y:dy};
+  const step=p.sprinting?.25:.16;
+  const nx=p.x+dx*step,ny=p.y+dy*step;
+  if(canMove(p,nx,ny)){p.x=nx;p.y=ny}
+  else if(tileBlocked(nx,ny))note('⛰️ Caminho bloqueado. Procure uma trilha ou contorne o obstáculo.');
+ }
+function nearestThing(p,maxD=1.65){let candidates=[...things,...bosses.filter(b=>b.alive)];let best=null,bd=maxD;for(const o of candidates){const d=Math.hypot(o.x-p.x,o.y-p.y);if(d<bd){bd=d;best=o}}return best}
+function addXP(amount){sharedXP+=amount;while(sharedXP>=xpForLevel()){sharedXP-=xpForLevel();players.forEach(p=>{p.level=(p.level||1)+1;p.maxHp+=8;if(p.hp>0)p.hp=Math.min(p.maxHp,p.hp+20);p.baseAtk+=2});log('⭐ Nível '+(players[0].level||1)+'! +8 HP máximo e +2 ataque para cada jogador.')}renderLevelInfo()}
+function xpForLevel(){return 100+((players[0].level||1)-1)*65}
+function renderLevelInfo(){const el=$('levelInfo');if(el)el.textContent='⭐ Nível '+(players[0].level||1)+' · XP '+sharedXP+'/'+xpForLevel();}
+function updateRaidStatus(){
+ const box=$('raidStatus');
+ if(!raidState){box.innerHTML='<strong>Sem raid ativa</strong><p>Preparem armas, cajados e armaduras antes de começar. Os inimigos surgem perto da equipe.</p>';}
+ else {box.innerHTML='';const strong=document.createElement('strong');strong.textContent=raidState.def.name+' — onda '+raidState.wave+'/'+raidState.def.waves;const p=document.createElement('p');const alive=things.filter(o=>o.raidId===raidState.serial&&o.type==='monster').length;p.textContent='Derrotados nesta onda: '+raidState.killsThisWave+'/'+raidState.def.mobs+' · Inimigos restantes: '+alive+'. Recompensa final: '+raidState.def.reward+' ouro e '+raidState.def.xp+' XP.';box.append(strong,p)}
+ ['raidForest','raidRuins','raidDragon'].forEach(id=>$(id).disabled=!!raidState);const hud=$('raidHud');if(hud){hud.classList.toggle('hidden',!raidState);if(raidState){const activeRaid=things.filter(o=>o.raidId===raidState.serial&&o.type==='monster');const hpNow=activeRaid.reduce((sum,o)=>sum+Math.max(0,o.hp||0),0);const hpMax=activeRaid.reduce((sum,o)=>sum+(o.maxHp||o.hp||1),0)||1;const ratio=Math.max(0,Math.min(1,hpNow/hpMax));const killed=(raidState.wave-1)*raidState.def.mobs+raidState.killsThisWave;$('raidHudName').textContent='⚔️ '+raidState.def.name+' · ONDA '+raidState.wave+'/'+raidState.def.waves;$('raidHudFill').style.width=(ratio*100)+'%';$('raidHudText').textContent='Vida total dos inimigos: '+Math.ceil(hpNow)+'/'+Math.ceil(hpMax)+' HP · Derrotados: '+killed+' · Recompensa '+raidState.def.reward+' moedas';}}const boat=$('boatButton');if(boat){boat.disabled=!boatUnlocked;boat.textContent=boatUnlocked?'⛵ Usar barco':'⛵ Barco bloqueado';}const tame=$('tameButton');if(tame)tame.textContent='🦴 Domesticar ('+tameItems+')';renderLevelInfo();
+}
+function startRaid(key){
+ if(raidState){note('⚔️ Terminem a raid atual antes de iniciar outra.');return}
+ const def=raidDefs[key];raidSerial++;
+ raidState={def,serial:raidSerial,wave:1,killsThisWave:0};
+ log('🚨 RAID INICIADA: '+def.name+'! Trabalhem juntos para sobreviver às ondas.');note('⚔️ '+def.name+' começou! Os inimigos estão chegando.');
+ spawnRaidWave();updateRaidStatus();renderUI();
+}
+function spawnRaidWave(){
+ if(!raidState)return;
+ const r=raidState, d=r.def;
+ // Spawn enemies on passable grass/path within a ring around the pair, but never on either player.
+ let spawned=0,tries=0;
+ const center={x:(players[0].x+players[1].x)/2,y:(players[0].y+players[1].y)/2};
+ while(spawned<d.mobs&&tries<d.mobs*150){tries++;
+   let angle=Math.random()*Math.PI*2, radius=isSafeZone(center.x,center.y)?8+Math.random()*9:3.5+Math.random()*5.5;
+   let x=Math.max(2,Math.min(MAP_W-3,Math.floor(center.x+Math.cos(angle)*radius)));
+   let y=Math.max(2,Math.min(MAP_H-3,Math.floor(center.y+Math.sin(angle)*radius)));
+   if(!['grass','path'].includes(at(x,y))||isSafeZone(x+.5,y+.5))continue;
+   if(players.some(p=>Math.hypot(p.x-(x+.5),p.y-(y+.5))<2.6))continue;
+   if(things.some(o=>o.type&&Math.hypot(o.x-(x+.5),o.y-(y+.5))<1.25))continue;
+   const hp=d.hp+((r.wave-1)*Math.floor(d.hp*.3))+rand(Math.max(5,Math.floor(d.hp*.25)));
+   things.push({type:'monster',x:x+.5,y:y+.5,hp,maxHp:hp,reward:5+rand(10),xp:8+rand(9),name:d.enemyName,color:d.color,lastHit:0,raidId:r.serial,raidWave:r.wave,atk:d.atk});spawned++;
+ }
+ if(spawned===0){ // Fallback to clear, nearby path tiles if the ring had too many obstacles.
+   for(let radius=3;radius<=(isSafeZone(center.x,center.y)?20:9)&&spawned<d.mobs;radius++)for(let y=Math.max(2,Math.floor(center.y-radius));y<=Math.min(MAP_H-3,Math.ceil(center.y+radius))&&spawned<d.mobs;y++)for(let x=Math.max(2,Math.floor(center.x-radius));x<=Math.min(MAP_W-3,Math.ceil(center.x+radius))&&spawned<d.mobs;x++){
+     if(!['grass','path'].includes(at(x,y))||isSafeZone(x+.5,y+.5)||players.some(p=>Math.hypot(p.x-(x+.5),p.y-(y+.5))<2.3)||things.some(o=>o.type&&Math.hypot(o.x-(x+.5),o.y-(y+.5))<1.2))continue;
+     const hp=d.hp+((r.wave-1)*Math.floor(d.hp*.3));things.push({type:'monster',x:x+.5,y:y+.5,hp,maxHp:hp,reward:5+rand(10),xp:8+rand(9),name:d.enemyName,color:d.color,lastHit:0,raidId:r.serial,raidWave:r.wave,atk:d.atk});spawned++;
+   }
+ }
+ r.killsThisWave=0;
+ log('👾 Onda '+r.wave+' de '+r.def.waves+': surgiram '+spawned+' inimigos!');
+ updateRaidStatus();renderUI();
+}
+function checkRaidEnemyDefeated(o){
+ if(!raidState||o.raidId!==raidState.serial)return;
+ raidState.killsThisWave++;
+ const remaining=things.some(e=>e.raidId===raidState.serial&&e.type==='monster');
+ if(remaining){updateRaidStatus();return}
+ if(raidState.wave<raidState.def.waves){raidState.wave++;log('✅ Onda concluída! A próxima onda está chegando...');spawnRaidWave();}
+ else{
+   const def=raidState.def;players.slice(0,playerCount).forEach(p=>{p.gold+=Math.floor(def.reward/2);addRelic(p,'Relíquia '+def.name,Math.floor(def.reward*.35))});addXP(def.xp);progressQuest('raids',1);
+   // Bonus loot from the raid chest
+   const bonus=rand(3);if(bonus===0){players.forEach(p=>p.potions++);log('🎁 Recompensa extra da raid: uma poção para cada jogador!')}else if(bonus===1){players[rand(2)].baseAtk+=3;log('🎁 Recompensa extra: runa de poder (+3 ataque para um jogador)!')}else{players.forEach(p=>p.gold+=50);log('🎁 Recompensa extra: cada jogador recebeu 50 ouro do baú bônus!')}
+   log('🏆 RAID CONCLUÍDA: '+def.name+'! Recompensa: '+def.reward+' ouro e '+def.xp+' XP.');note('🏆 Raid concluída! A equipe recebeu '+def.reward+' ouro, XP e uma recompensa extra.');raidState=null;updateRaidStatus();renderUI();
+ }
+}
+ function progressQuest(type,amount=1,id=null){
+  if(!quest)return;
+  if(quest.type!==type)return;
+  if(quest.bossId&&id!==quest.bossId)return;
+  quest.progress+=amount;
+  $('activeQuest').textContent=`Missão ativa: ${quest.title} (${Math.min(quest.progress,quest.target)}/${quest.target}) · Recompensa para J${quest.ownerId||1}`;
+  if(quest.progress>=quest.target){
+   const owner=players.find(p=>p.id===quest.ownerId)||players[0];
+   owner.gold+=quest.reward;addXP(quest.xp);
+   log(`🎉 Missão concluída: ${quest.title}! ${owner.name} recebeu ${quest.reward} ouro e a equipe ganhou ${quest.xp} XP.`);
+   questDone[quest.id]=true;quest=null;renderUI();
+  }
+ }
+ function chest(o,p){
+  if(o.opened){note('🧰 Este baú já foi aberto.');return}
+  o.opened=true;let loot=rand(5);
+  if(loot===0){p.gold+=35;log(`🧰 Baú: ${p.name} encontrou 35 ouro!`)}
+  else if(loot===1){players.forEach(q=>q.potions++);log('🧰 Baú: cada jogador ganhou uma poção!')}
+  else if(loot===2){p.gold+=20;log(`🧰 Baú: ${p.name} encontrou 20 ouro!`)}
+  else if(loot===3){p.baseAtk+=2;log(`🧰 Baú: ${p.name} encontrou uma runa afiada e recebeu +2 ataque!`)}
+  else{p.gold+=10;log(`🧰 Baú: ${p.name} encontrou 10 ouro e um amuleto antigo!`)}
+  progressQuest('chests',1);note(`🧰 Baú aberto! O ouro foi para ${p.name}.`);renderUI();
+ }
+function interact(p){
+ if(!p||p.hp<=0||p.respawning){if(p)note(p.name+' precisa renascer antes de interagir.');return}
+ const o=nearestThing(p,2.2);if(!o){note(`${p.name}: nada para interagir por perto.`);return}
+ if(o.type==='shop'){ui='shop';renderPanels();showDialogue('Luma — Vendedora','Olá, aventureiros! Tenho espadas, cajados mágicos, arcos e armaduras. Cajados e arcos atacam de longe: equipe um deles e aperte Q (J1) ou M (J2).');note('🏪 Luma abriu a loja de armas e armaduras.');return}
+ if(o.type==='guild'){ui='guild';renderPanels();showDialogue('Capitão Nilo — Guilda','Precisamos de ajuda! Aceitem um contrato no quadro, ou iniciem uma raid no painel à direita. As raids têm várias ondas e dão grandes recompensas em ouro, XP e itens!');note('📜 O Capitão Nilo mostra os contratos da guilda.');return}
+ if(o.type==='blacksmith'){ui='shop';renderPanels();showDialogue('Brasa — Ferreiro','Essas lâminas foram temperadas na lava das ilhas. Com armaduras melhores, você recebe menos dano. Veja a lista da loja!');return}
+ if(o.type==='clinic'){p.hp=p.maxHp;players.forEach(q=>q.potions=Math.max(q.potions,1));showDialogue('Mira — Curandeira','A luz das ervas restaurou sua vida! Curei você e deixei uma poção para cada aventureiro que precisar.');note('🌿 Vida restaurada pela curandeira.');renderUI();return}
+ if(o.type==='inn'){if(p.gold<5){showDialogue('Téo — Estalajadeiro','O descanso custa 5 moedas. Volte quando tiver dinheiro!');return}p.gold-=5;players.forEach(q=>{q.hp=q.maxHp;q.potions++});showDialogue('Téo — Estalajadeiro','Você pagou 5 moedas pelo descanso. Os dois recuperaram a vida e ganharam uma poção.');note('🛏️ Descanso pago por '+p.name+': -5 ouro.');renderUI();return}
+ if(o.type==='elder'){showDialogue('Anciã Lua','As trilhas seguem para quatro arenas. Derrotem primeiro o Rei Slime, depois o Guardião e o Dragão. Ayla é a mais perigosa: levem cajados e armaduras fortes!');return}
+ if(o.type==='chest'){chest(o,p);return}
+ if(o.type==='animal'){o.type='';const found=rand(5)+2;p.gold+=found;log(`🐾 Um animal amigável deixou ${found} moedas para ${p.name}!`);progressQuest('animals',1);renderUI();return}
+ if(o.type==='herb'){o.type='';p.hp=Math.min(p.maxHp,p.hp+25);log(`🌿 ${p.name} encontrou uma erva e recuperou até 25 HP.`);progressQuest('herbs',1);renderUI();return}
+ if(o.type==='monster'||bosses.includes(o)){attack(p,o,false);return}
+ note('🌀 Um lugar misterioso. Explore o mundo para achar mais coisas.')}
+function attack(p,o,magic){
+ if(!p||p.hp<=0||p.respawning)return;
+ let now=performance.now();if(now-p.lastAttack<330)return;p.lastAttack=now;wearWeapon(p);
+ let isBoss=bosses.includes(o),type=isBoss?'boss':o.type;
+ let damage=gearDamage(p)+rand(5)+(magic?Math.floor(p.weapon.power*.55):0);
+ if(magic&&!['staff','bow'].includes(p.weapon.kind)){note(`${p.name} precisa equipar um cajado ou arco para atacar de longe.`);return}
+ if(magic&&p.weapon.kind==='bow'){
+   if(now-p.magicCd<650)return;p.magicCd=now;
+   const arrowDamage=Math.max(1,gearDamage(p)+rand(5)+Math.floor((p.weapon.power||0)*.20));
+   shots.push({x:p.x,y:p.y,tx:o.x,ty:o.y,owner:p.id,target:o,speed:.92,damage:arrowDamage,ttl:105,color:'#e4c17a',arrow:true});
+   note(`🏹 ${p.name} disparou uma flecha contra ${o.name||'o monstro'}!`);return;
+ }
+ if(magic&&p.weapon.kind==='staff'){
+   if(now-p.magicCd<500)return;p.magicCd=now;
+   const elem=magicElement;shots.push({x:p.x,y:p.y,tx:o.x,ty:o.y,owner:p.id,target:o,speed:.72,damage,ttl:85,element:elem,color:elem==='ice'?'#7deaff':elem==='lightning'?'#f5ed77':'#ff7048'});
+ }else damage=Math.max(1,damage);
+ if(magic){note(`✨ ${p.name} lançou magia contra ${o.name||'o monstro'}!`);return}
+ hitTarget(p,o,damage,isBoss);
+}
+function hitTarget(p,o,damage,isBoss){
+ if(isBoss){o.currentHp=Math.max(0,o.currentHp-damage);o.lastHit=performance.now();floatText(o.x,o.y-1,'-'+damage,'#ffe08c');log(`⚔️ ${p.name} acertou ${o.name}: ${damage} de dano.`);if(o.currentHp===0){o.alive=false;bossesDead[o.id]=true;if(o.id==='dragon'&&!boatUnlocked){boatUnlocked=true;for(let x=68;x<=72;x++)tiles[65][x]='path';log('⛵ O Dragão deixou a Chave do Barco! O rio agora pode ser atravessado pela ponte.');note('⛵ Você conquistou o item Barco! A segunda região está liberada.')}p.gold+=o.reward;addXP(o.xp);addRelic(p,'Relíquia de '+o.name,Math.max(45,Math.floor(o.reward*.55)));log(`🏆 ${p.name} derrotou ${o.name} e recebeu ${o.reward} ouro e ${o.xp} XP.`);progressQuest('bosses',1,o.id);note(`🏆 ${o.name} foi derrotado! Recompensa para ${p.name}.`)}else bossCounter(o);renderUI();return}
+ o.hp-=damage;floatText(o.x,o.y-0.6,'-'+damage,'#ffffff');note(`${p.name} causou ${damage} de dano!`);if(o.hp<=0){o.type='';if(Math.random()<.32){tameItems++;log('🦴 Você encontrou um Selo de Domesticação! Use-o para chamar um companheiro animal.')}const lootGold=o.reward||7;p.gold+=lootGold;addXP(o.xp||18);log(`👾 ${p.name} derrotou o inimigo e recebeu ${lootGold} ouro e XP.`);progressQuest('monsters',1);checkRaidEnemyDefeated(o);renderUI()}else{if(!isSafeZone(p.x,p.y)&&performance.now()-o.lastHit>450){o.lastHit=performance.now();let hit=Math.max(1,(o.atk||2)+rand(5)-(p.armor?.defense||0)-(p.shield&&p.shieldDurability!==0?8:0));if(p.shield)wearShield(p);p.hp=Math.max(0,p.hp-hit);note(`${o.name} contra-atacou: ${hit} de dano.`);if(p.hp<=0)playerDeath(p,o.name||'um monstro');renderUI()}}
+}
+function bossCounter(b){for(const p of players.slice(0,playerCount)){if(!isSafeZone(p.x,p.y)&&Math.hypot(p.x-b.x,p.y-b.y)<3.5){if(p.hp<=0||p.respawning)continue;let dmg=Math.max(1,b.atk+rand(7)-(p.armor?.defense||0)-(p.shield&&p.shieldDurability!==0?8:0));if(p.shield)wearShield(p);p.hp=Math.max(0,p.hp-dmg);log(`💥 ${b.name} atingiu ${p.name}: ${dmg} de dano!`);if(p.hp<=0)playerDeath(p,b.name)}}}
+function floatText(x,y,text,color){particles.push({x,y,text,color,life:1})}
+function usePotion(p){if(!p||p.hp<=0||p.respawning){note(p.name+' precisa renascer antes de usar poções.');return}if(p.potions<1){note(`${p.name} não tem poções.`);return}if(p.hp===p.maxHp){note(`${p.name} já está com a vida cheia.`);return}p.potions--;let heal=Math.min(45,p.maxHp-p.hp);p.hp+=heal;log(`🧪 ${p.name} recuperou ${heal} HP.`);renderUI();saveWorld(false)}
+ function addRelic(p,name,value){p.relics=p.relics||[];p.relics.push({name,value});log('💎 '+p.name+' encontrou relíquia: '+name+' (valor de venda: '+value+' ouro)!')}
+ function sellRelic(pi,index){const p=players[pi];p.relics=p.relics||[];if(!p.relics[index])return;const r=p.relics.splice(index,1)[0];p.gold+=r.value;log('🪙 '+p.name+' vendeu '+r.name+' por '+r.value+' ouro.');note('Relíquia vendida por '+r.value+' moedas!');renderUI();saveWorld(false)}
+ function renderHotbar(p,n){
+  const root=$('slots'+n);if(!root)return;root.innerHTML='';
+  const owned=p.weapons||[p.weapon];
+  const best=kind=>owned.filter(w=>w.kind===kind).sort((a,b)=>(b.power||0)-(a.power||0))[0];
+  const sword=best('sword'),staff=best('staff'),bow=best('bow');
+  const equip=(w,label)=>()=>{if(w){p.weapon={...w};note(p.name+' equipou '+w.name+'.');renderUI()}else note(p.name+' ainda não possui '+label+'. Compre na loja.')};
+  const items=[
+   {icon:'⚔️',label:'Espada',enabled:!!sword,selected:p.weapon.kind==='sword'&&p.weapon.name===sword?.name,action:equip(sword,'uma espada')},
+   {icon:'🪄',label:'Cajado',enabled:!!staff,selected:p.weapon.kind==='staff'&&p.weapon.name===staff?.name,action:equip(staff,'um cajado')},
+   {icon:'🏹',label:'Arco',enabled:!!bow,selected:p.weapon.kind==='bow'&&p.weapon.name===bow?.name,action:equip(bow,'um arco')},
+   {icon:'🧪',label:'Poção ×'+p.potions,enabled:p.potions>0&&p.hp>0&&p.hp<p.maxHp,selected:false,action:()=>usePotion(p)},
+   {icon:'🛡️',label:p.shield?'Escudo ON':'Escudo',enabled:p.hp>0,selected:p.shield,action:()=>{p.shield=!p.shield;if(p.shield&&(p.shieldDurability===undefined||p.shieldDurability<=0))p.shieldDurability=120;note(p.shield?p.name+' equipou o escudo na mão secundária: -8 de dano recebido!':p.name+' guardou o escudo.');renderUI()}}
+  ];
+  items.forEach((it,i)=>{const b=document.createElement('button');b.className='slot'+(it.selected?' selected':'');b.disabled=!it.enabled;b.innerHTML='<span class="emoji">'+it.icon+'</span>'+it.label;b.title=['Equipar a melhor espada','Equipar o melhor cajado','Equipar o melhor arco; use Q (J1) ou M (J2) para disparar','Usar poção para recuperar até 45 de vida','Equipar/guardar escudo na segunda mão'][i];b.onclick=it.action;root.append(b)});
+ }
+ function renderInventory(){
+  const host=$('inventoryDetails'); if(!host)return; host.innerHTML='';
+  players.slice(0,playerCount).forEach((p,i)=>{
+    const card=document.createElement('div');card.className='invCard';
+    const weapons=(p.weapons||[p.weapon]).map(w=>`${w.kind==='staff'?'🪄':w.kind==='bow'?'🏹':'⚔️'} ${w.name} · poder ${w.power||0}${p.weapon.name===w.name?' ✓ equipado':''}`).join('<br>');
+    const relics=p.relics||[];
+    card.innerHTML=`<h3>${i===0?'🔷':'🟠'} ${p.name}</h3><div class="invItem">❤️ Vida: ${Math.ceil(p.hp)}/${p.maxHp}<br>🪙 Moedas: <b>${p.gold}</b><br>🧪 Poções: ${p.potions}<br>🧿 Relíquias: ${relics.length}</div><div class="invItem"><b>⚔️ Equipamento na hotbar</b><br>${p.weapon.name}<br><span class="muted">Poder: ${gearDamage(p)}</span></div><div class="invItem"><b>🎒 Armas guardadas</b><br>${weapons||'Nenhuma arma'}</div><div class="invItem"><b>🛡️ Equipamentos</b><br>Armadura: ${p.armor.name} (defesa ${p.armor.defense||0})<br>Escudo na segunda mão: ${p.shield?'Equipado ✓':'Guardado'}</div><div class="invItem"><b>🦴 Selos de domesticação:</b> ${tameItems}<br><b>🐾 Companheiros:</b> ${pets.length}<br><b>⛵ Barco:</b> ${boatUnlocked?'Desbloqueado':'Bloqueado até derrotar o Dragão'}<br><b>🛡️ Durabilidade do escudo:</b> ${p.shieldDurability===undefined?120:p.shieldDurability}/120</div><div class="invItem"><b>💎 Relíquias e venda</b><br>${relics.length?relics.map((r,ri)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin:5px 0"><span>💎 ${r.name} · ${r.value} moedas</span><button class="gold" data-sell-player="${i}" data-sell-index="${ri}">Vender</button></div>`).join(''):'Nenhuma relíquia ainda. Derrote chefes e conclua raids para encontrar relíquias.'}</div>`;
+    host.appendChild(card);
+    card.querySelectorAll('[data-sell-player]').forEach(btn=>btn.onclick=()=>sellRelic(Number(btn.dataset.sellPlayer),Number(btn.dataset.sellIndex)));
+  });
+  const world=document.createElement('div');world.className='invCard';world.innerHTML=`<h3>🌍 Estado do mundo</h3><div class="invItem">🧰 Baús fechados: ${things.filter(o=>o.type==='chest'&&!o.opened).length}<br>👾 Monstros: ${things.filter(o=>o.type==='monster').length}<br>🐾 Animais: ${things.filter(o=>o.type==='animal').length}<br>👑 Chefes vivos: ${bosses.filter(b=>b.alive).length}</div><div class="invItem muted">As armas compradas aparecem na lista do jogador que as comprou. Use a hotbar sobre o mapa para equipar espada, cajado, arco, poção ou escudo.</div>`;host.appendChild(world);
+ }
+ function renderUI(){
+  players.forEach((p,i)=>{
+   const n=i+1;
+   $('p'+n+'name').textContent=p.name;
+   $('p'+n+'hp').textContent=Math.ceil(p.hp)+'/'+p.maxHp;
+   $('p'+n+'bar').style.width=(p.hp/p.maxHp*100)+'%';
+   $('p'+n+'atk').textContent=gearDamage(p)+' · Nv '+(p.level||1);
+   $('p'+n+'gear').textContent=p.weapon.name+' · '+p.armor.name+' · '+p.potions+' poções';
+   $('p'+n+'gold').textContent='🪙 '+p.gold+' ouro';
+   $('sprint'+n).textContent=p.sprinting?'🏃 Correr J'+n+': ON':'🏃 Correr J'+n+': OFF';
+   renderHotbar(p,n);
+  });
+  $('gold1').textContent=players[0].gold;$('gold2').textContent=players[1].gold;
+  $('inventory').innerHTML='';
+  let counts={Baús:things.filter(o=>o.type==='chest'&&!o.opened).length,Monstros:things.filter(o=>o.type==='monster').length,Animais:things.filter(o=>o.type==='animal').length,'Chefes vivos':bosses.filter(b=>b.alive).length};
+  Object.entries(counts).forEach(([k,v])=>{let span=document.createElement('span');span.className='chip';span.textContent=k+': '+v;$('inventory').append(span)});
+  $('bossList').textContent='Chefes: '+bosses.map(b=>`${b.name} (${b.alive?Math.ceil(b.currentHp)+' HP':'derrotado'})`).join(' · ');
+  renderPanels();updateRaidStatus();renderInventory();
+ }
+function openPanel(kind){ui=kind;renderPanels()}
+ function questDestination(q){
+  if(q.bossId){const b=bosses.find(b=>b.id===q.bossId);if(b)return {x:b.x,y:b.y,label:b.name+' — arena do chefe'};}
+  const byType={monsters:{x:30,y:24,label:'Trilha dos monstros'},chests:{x:22,y:30,label:'Ruínas com baús'},animals:{x:20,y:22,label:'Prado dos animais'},herbs:{x:15,y:25,label:'Jardim das ervas'},raids:{x:12,y:12,label:'Painel de raids na vila'}};
+  return byType[q.type]||{x:12,y:12,label:'Vila inicial'};
+ }
+ function renderPanels(){
+  const shops=ui==='shop',guild=ui==='guild';
+  $('shopItems').classList.toggle('hidden',!shops);$('shopLock').classList.toggle('hidden',shops);
+  $('questItems').classList.toggle('hidden',!guild);$('questLock').classList.toggle('hidden',guild);
+  if(shops){
+   $('weapons').innerHTML='';
+   weaponList.forEach(w=>{
+    const row=document.createElement('div');row.className='rowitem';
+    const icon=document.createElement('div');icon.className='itemicon';icon.textContent=w.icon;
+    const desc=document.createElement('div');desc.className='itemdesc';
+    desc.innerHTML=`<strong>${w.name} · +${w.power} poder</strong><small>${w.desc}<br>Preço: ${w.price} ouro</small>`;
+    const btnrow=document.createElement('div');btnrow.className='buyrow';
+    [0,1].forEach(pi=>{const b=document.createElement('button');b.textContent='Comprar J'+(pi+1)+' ('+players[pi].gold+'g)';b.disabled=players[pi].gold<w.price;b.onclick=()=>buyWeapon(pi,w);btnrow.append(b)});
+    desc.append(btnrow);row.append(icon,desc);$('weapons').append(row);
+   });
+   $('armors').innerHTML='';
+   armorList.forEach(a=>{
+    const row=document.createElement('div');row.className='rowitem';
+    const icon=document.createElement('div');icon.className='itemicon';icon.textContent=a.icon;
+    const desc=document.createElement('div');desc.className='itemdesc';
+    desc.innerHTML=`<strong>${a.name} · defesa ${a.defense}</strong><small>${a.desc}<br>Preço: ${a.price} ouro</small>`;
+    const btnrow=document.createElement('div');btnrow.className='buyrow';
+    [0,1].forEach(pi=>{const b=document.createElement('button');b.textContent='Comprar J'+(pi+1)+' ('+players[pi].gold+'g)';b.disabled=players[pi].gold<a.price;b.onclick=()=>buyArmor(pi,a);btnrow.append(b)});
+    desc.append(btnrow);row.append(icon,desc);$('armors').append(row);
+   });
+  }
+  if(guild){
+   $('questItems').innerHTML='';
+   const quests=[
+    {id:'slimes',title:'Patrulha de monstros',detail:'Derrote 5 monstros comuns.',type:'monsters',target:5,reward:100,xp:55},
+    {id:'chests',title:'Caçadores de tesouros',detail:'Abra 3 baús espalhados pelo mundo.',type:'chests',target:3,reward:85,xp:40},
+    {id:'animals',title:'Ajuda aos animais',detail:'Encontre 4 animais amigáveis.',type:'animals',target:4,reward:70,xp:30},
+    {id:'slimeboss',title:'Contrato: Rei Slime',detail:'Derrote o Rei Slime na arena verde.',type:'bosses',bossId:'slime',target:1,reward:180,xp:80},
+    {id:'golemboss',title:'Contrato: Guardião',detail:'Derrote o Guardião da Floresta.',type:'bosses',bossId:'golem',target:1,reward:300,xp:110},
+    {id:'dragonboss',title:'Contrato: Dragão',detail:'Derrote o Dragão da Tempestade.',type:'bosses',bossId:'dragon',target:1,reward:500,xp:150},
+    {id:'hydraquest',title:'Região Leste: Hidra das Cinzas',detail:'Atravesse o rio e derrote a Hidra das Cinzas. Disponível na Guilda da Maré.',type:'bosses',bossId:'hydra',target:1,reward:750,xp:220},
+    {id:'titanquest',title:'Região Leste: Titã do Abismo',detail:'Derrote o Titã do Abismo na arena do leste.',type:'bosses',bossId:'titan',target:1,reward:1000,xp:300},
+    {id:'herbalist',title:'Ervas para Mira',detail:'Encontre 5 ervas medicinais.',type:'herbs',target:5,reward:120,xp:50},
+    {id:'chestmaster',title:'Tesouros antigos',detail:'Abra 6 baús pelo mapa.',type:'chests',target:6,reward:230,xp:85},
+    {id:'hunter',title:'Caçador de criaturas',detail:'Derrote 10 monstros comuns.',type:'monsters',target:10,reward:260,xp:100},
+    {id:'slimepack',title:'Controle de pragas',detail:'Derrote 3 monstros comuns.',type:'monsters',target:3,reward:110,xp:45},
+    {id:'aylaquest',title:'Desafio da Rainha',detail:'Derrote Ayla, a Rainha do Oceano.',type:'bosses',bossId:'ayla',target:1,reward:1200,xp:300},
+    {id:'raidchampion',title:'Campeões da raid',detail:'Conclua uma raid com sua equipe.',type:'raids',target:1,reward:350,xp:110}
+   ];
+   quests.forEach(q=>{
+    const div=document.createElement('div');div.className='questline';
+    const title=document.createElement('strong');title.textContent=q.title;
+    const detail=document.createElement('div');detail.className='small';detail.textContent=q.detail+' Recompensa: '+q.reward+' ouro.';
+    const btnrow=document.createElement('div');btnrow.className='buyrow';
+    [0,1].forEach(pi=>{const btn=document.createElement('button');btn.textContent=questDone[q.id]?'Concluída':'Aceitar J'+(pi+1);btn.disabled=!!quest||!!questDone[q.id];btn.style.marginTop='6px';btn.onclick=()=>{quest={...q,progress:0,ownerId:pi+1,destination:questDestination(q)};$('activeQuest').innerHTML='Missão ativa: '+q.title+' (0/'+q.target+') · Recompensa para J'+(pi+1)+'<div class="questTarget">📍 Objetivo: '+quest.destination.label+'<br>Localização no mapa: X '+Math.round(quest.destination.x)+', Y '+Math.round(quest.destination.y)+'. Siga o marcador dourado no mapa.</div>';log('📜 '+players[pi].name+' aceitou: '+q.title+' — destino: '+quest.destination.label);renderPanels()};btnrow.append(btn)});
+    div.append(title,detail,btnrow);$('questItems').append(div);
+   });
+  }
+ }
+ function buyWeapon(pi,w){
+  const p=players[pi];if(p.gold<w.price){note(`${p.name} não tem ouro suficiente.`);return}
+  p.weapons=p.weapons||[p.weapon];const old=p.weapons.find(x=>x.kind===w.kind);
+  if(old && (old.power||0)>=(w.power||0)){note(`${p.name} já tem ${w.kind==='staff'?'um cajado':w.kind==='bow'?'um arco':'uma espada'} igual ou melhor. A hotbar mantém o melhor de cada tipo.`);return}
+  p.gold-=w.price;p.weapons=p.weapons.filter(x=>x.kind!==w.kind);const bought={...w,durability:durabilityMax(w)};p.weapons.push(bought);if(p.weapon.kind===w.kind||!p.weapon)p.weapon={...bought};
+  log(`🛒 ${p.name} comprou ${w.name}! O equipamento inferior do mesmo tipo foi substituído.`);note(`${w.name} é agora o melhor equipamento desse tipo para ${p.name} e aparece na hotbar.`);renderUI();saveWorld(false);
+ }
+ function buyArmor(pi,a){
+  const p=players[pi];if(p.gold<a.price){note(`${p.name} não tem ouro suficiente.`);return}
+  p.gold-=a.price;p.armor={...a};log(`🛡️ ${p.name} equipou ${a.name} (defesa ${a.defense}).`);note(`${a.name} equipado em ${p.name}; agora recebe menos dano.`);renderUI();saveWorld(false);
+ }
+ function updateProjectiles(){
+  for(const shot of shots){
+   if(shot.ttl<=0)continue;
+   // Hostile bolts steer toward the player they targeted when fired.
+   let targetPlayer=null;
+   if(shot.enemy){
+    targetPlayer=players[(shot.targetPlayer||1)-1];
+    if(!targetPlayer||(targetPlayer.id>playerCount)||targetPlayer.hp<=0||targetPlayer.respawning||isSafeZone(targetPlayer.x,targetPlayer.y)){shot.ttl=0;continue;}
+    shot.tx=targetPlayer.x;shot.ty=targetPlayer.y;
+   }
+   const dx=shot.tx-shot.x,dy=shot.ty-shot.y,d=Math.hypot(dx,dy)||0.0001;
+   if(d<=shot.speed+.22){
+    shot.x=shot.tx;shot.y=shot.ty;shot.ttl=0;
+    if(shot.enemy&&targetPlayer&&!isSafeZone(targetPlayer.x,targetPlayer.y)){
+     const damage=Math.max(1,shot.damage-(targetPlayer.armor?.defense||0)-(targetPlayer.shield&&targetPlayer.shieldDurability!==0?8:0));if(targetPlayer.shield)wearShield(targetPlayer);
+     targetPlayer.hp=Math.max(0,targetPlayer.hp-damage);
+     floatText(targetPlayer.x,targetPlayer.y-0.8,'-'+damage,'#ff8b72');
+     note('💥 '+targetPlayer.name+' recebeu '+damage+' de dano de um projétil inimigo!');
+     log('🎯 Um ataque à distância acertou '+targetPlayer.name+' causando '+damage+' de dano.');
+     if(targetPlayer.hp<=0)playerDeath(targetPlayer,'um projétil inimigo');
+     renderUI();
+    }else if(shot.target&&(shot.target.type==='monster'||(bosses.includes(shot.target)&&shot.target.alive))){
+     if(shot.element){const t=shot.target;if(shot.element==='ice')t.frozenUntil=Date.now()+2600;else if(shot.element==='lightning')t.paralyzedUntil=Date.now()+1900;else if(shot.element==='fire')t.burnUntil=Date.now()+3200;}
+     hitTarget(players[shot.owner-1],shot.target,shot.damage,bosses.includes(shot.target));
+    }
+   }else{shot.x+=dx/d*shot.speed;shot.y+=dy/d*shot.speed;shot.ttl--;}
+  }
+  shots=shots.filter(s=>s.ttl>0);
+  for(const part of particles){part.y-=.015;part.life-=.025;}
+  particles=particles.filter(p=>p.life>0);
+ }
+ function drawViewport(sx,sy,sw,sh,focus,now,splitMode){
+  const worldPxW=MAP_W*TW,worldPxH=MAP_H*TW;
+  const camX=Math.max(0,Math.min(worldPxW-sw,focus.x*TW-sw/2));
+  const camY=Math.max(0,Math.min(worldPxH-sh,focus.y*TW-sh/2));
+  const minX=Math.max(0,Math.floor(camX/TW)-1),maxX=Math.min(MAP_W-1,Math.ceil((camX+sw)/TW)+1);
+  const minY=Math.max(0,Math.floor(camY/TW)-1),maxY=Math.min(MAP_H-1,Math.ceil((camY+sh)/TW)+1);
+  ctx.save();ctx.beginPath();ctx.rect(sx,sy,sw,sh);ctx.clip();ctx.fillStyle='#1d6c8b';ctx.fillRect(sx,sy,sw,sh);ctx.translate(sx-camX,sy-camY);
+  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)drawTile(x,y,tiles[y][x]);
+  // Mark the village safe zone on the ground so players can see its limits.
+  ctx.save();ctx.fillStyle='rgba(47,220,158,0.07)';ctx.fillRect(3*TW,6*TW,22*TW,16*TW);ctx.strokeStyle='rgba(110,255,206,0.9)';ctx.lineWidth=3;ctx.setLineDash([10,7]);ctx.strokeRect(3*TW,6*TW,22*TW,16*TW);ctx.setLineDash([]);ctx.fillStyle='rgba(3,35,37,0.9)';ctx.fillRect(3*TW+5,6*TW+5,105,21);ctx.font='bold 11px Verdana';ctx.textAlign='left';ctx.fillStyle='#b5ffe6';ctx.fillText('VILA SEGURA',3*TW+10,6*TW+20);ctx.restore();
+  for(const o of things){if(!o.type||o.x<minX-2||o.x>maxX+2||o.y<minY-2||o.y>maxY+2)continue;drawThing(o,now);}
+  for(const b of bosses){if(b.alive&&b.x>=minX-3&&b.x<=maxX+3&&b.y>=minY-3&&b.y<=maxY+3)drawBoss(b,now);}
+  if(quest&&quest.destination){const d=quest.destination;const pulse=4+Math.sin(now/180)*3;ctx.save();ctx.translate(d.x*TW,d.y*TW);ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(0,-12,pulse+5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#b63b48';ctx.beginPath();ctx.moveTo(-7,-7);ctx.lineTo(7,-7);ctx.lineTo(0,6);ctx.closePath();ctx.fill();ctx.font='bold 12px Verdana';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#123047';ctx.fillStyle='#fff3b0';ctx.strokeText('DESTINO: '+d.label,0,-27);ctx.fillText('DESTINO: '+d.label,0,-27);ctx.restore();}
+  for(const shot of shots){if(shot.arrow){ctx.save();ctx.translate(shot.x*TW,shot.y*TW);ctx.rotate(Math.atan2(shot.ty-shot.y,shot.tx-shot.x));ctx.strokeStyle='#6c4a28';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(8,0);ctx.stroke();ctx.fillStyle='#e4c17a';ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(4,-4);ctx.lineTo(4,4);ctx.closePath();ctx.fill();ctx.restore()}else{ctx.fillStyle=shot.color;ctx.shadowBlur=12;ctx.shadowColor=shot.color;ctx.beginPath();ctx.arc(shot.x*TW,shot.y*TW,7,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}}
+  for(const part of particles){ctx.globalAlpha=Math.max(0,part.life);ctx.font='bold 13px Verdana';ctx.fillStyle=part.color;ctx.textAlign='center';ctx.fillText(part.text,part.x*TW,part.y*TW);}ctx.globalAlpha=1;
+  players.slice(0,playerCount).forEach(p=>drawPlayer(p,now));pets.forEach((pet,i)=>{ctx.font="23px Segoe UI Emoji";ctx.textAlign="center";ctx.fillText(["🐺","🦊","🐇"][i%3],pet.x*TW,pet.y*TW+4)});
+  const labels=[{x:8.5,y:7.4,t:'LOJA DA LUMA'},{x:18.5,y:7.4,t:'GUILDA DE MISSOES'},{x:8.5,y:14.2,t:'FORJA DE BRASA'},{x:18.5,y:14.2,t:'CASA DA MIRA'},{x:13.5,y:4.5,t:'POUSADA'},{x:13.5,y:16.2,t:'ANCIA LUA'},{x:30.5,y:19,t:'REI SLIME'},{x:43.5,y:31,t:'GUARDIÃO'},{x:52.5,y:62,t:'DRAGÃO — BARCO'},{x:96.5,y:21,t:'HIDRA DAS CINZAS'},{x:112.5,y:53,t:'TITÃ DO ABISMO'},{x:126.5,y:76,t:'AYLA — CHEFE FINAL'}];
+  ctx.font='bold 13px Verdana';ctx.textAlign='center';ctx.fillStyle='#fff7c7';ctx.strokeStyle='#17334a';ctx.lineWidth=3;
+  labels.forEach(o=>{const xx=o.x*TW,yy=o.y*TW;if(xx>camX&&xx<camX+sw&&yy>camY&&yy<camY+sh){ctx.strokeText(o.t,xx,yy);ctx.fillText(o.t,xx,yy);}});
+  ctx.restore();ctx.save();ctx.fillStyle='#051728cc';ctx.fillRect(sx+8,sy+8,splitMode?sw-16:225,24);ctx.font='bold 12px Verdana';ctx.textAlign='left';ctx.fillStyle='#eaf9ff';ctx.fillText(splitMode?(focus===players[0]?'JOGADOR 1 — WASD + Q':'JOGADOR 2 — SETAS + M'):(playerCount===1?'SOLO — WASD · Q CAJADO/ARCO':'COOP — WASD/SETAS · Q/M DISTÂNCIA'),sx+16,sy+24);ctx.restore();
+ }
+ function renderWorldMap(){
+  const map=$('worldMapCanvas');if(!map||!tiles.length)return;const mctx=map.getContext('2d');const sx=map.width/MAP_W,sy=map.height/MAP_H;
+  mctx.clearRect(0,0,map.width,map.height);const colors={grass:'#4c9857',path:'#b49a67',tree:'#285b45',rock:'#667d84',water:'#2a7199'};
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){mctx.fillStyle=colors[tiles[y]?.[x]]||colors.grass;mctx.fillRect(x*sx,y*sy,sx+.4,sy+.4)}
+  mctx.fillStyle='rgba(47,220,158,.24)';mctx.fillRect(3*sx,6*sy,22*sx,16*sy);mctx.strokeStyle='#7dffd0';mctx.lineWidth=2;mctx.strokeRect(3*sx,6*sy,22*sx,16*sy);
+  for(const o of things){if(!o.type)continue;mctx.beginPath();mctx.fillStyle=o.type==='monster'?'#f05d6c':o.type==='chest'?'#ffe073':o.type==='herb'?'#9ce38c':o.type==='animal'?'#f5d6b0':'#e5edf8';mctx.arc((o.x+.0)*sx,(o.y+.0)*sy,o.type==='monster'?2.8:1.8,0,Math.PI*2);mctx.fill()}
+  for(const b of bosses){mctx.beginPath();mctx.fillStyle=b.alive?'#db8bff':'#3c294c';mctx.arc(b.x*sx,b.y*sy,4.2,0,Math.PI*2);mctx.fill();mctx.strokeStyle='#251a36';mctx.lineWidth=1;mctx.stroke()}
+  players.slice(0,playerCount).forEach((p,i)=>{mctx.beginPath();mctx.fillStyle=i===0?'#36d6e7':'#ffae53';mctx.arc(p.x*sx,p.y*sy,4.5,0,Math.PI*2);mctx.fill();mctx.strokeStyle='#fff';mctx.lineWidth=1.2;mctx.stroke();mctx.font='bold 11px Verdana';mctx.fillStyle='#fff';mctx.strokeStyle='#10283a';mctx.lineWidth=3;mctx.strokeText('J'+(i+1),p.x*sx+5,p.y*sy-5);mctx.fillText('J'+(i+1),p.x*sx+5,p.y*sy-5)});
+ }
+ function worldDraw(now){
+  ctx.clearRect(0,0,VW,VH);
+  // Solo: keep the camera centered on the only active player.
+  if(playerCount===1){
+   splitActive=false;
+   drawViewport(0,0,VW,VH,players[0],now,false);
+   return;
+  }
+  const dx=Math.abs(players[0].x-players[1].x),dy=Math.abs(players[0].y-players[1].y);
+  const shouldSplit=dx>15||dy>9||Math.hypot(dx,dy)>17;
+  splitActive=shouldSplit;
+  if(!shouldSplit){drawViewport(0,0,VW,VH,{x:(players[0].x+players[1].x)/2,y:(players[0].y+players[1].y)/2},now,false);}
+  else{const half=Math.floor(VW/2);drawViewport(0,0,half,VH,players[0],now,true);drawViewport(half,0,VW-half,VH,players[1],now,true);ctx.save();ctx.fillStyle='#f4d477';ctx.fillRect(half-2,0,4,VH);ctx.restore();}
+ }
+function drawTile(x,y,t){
+ let px=x*TW,py=y*TW;
+ const colors={grass:'#4c9857',path:'#b49a67',tree:'#285b45',rock:'#667d84',water:'#2a7199'};
+ ctx.fillStyle=colors[t]||colors.grass;ctx.fillRect(px,py,TW,TW);
+ if(t==='grass'){ctx.fillStyle='rgba(15,45,27,.12)';ctx.fillRect(px,py+27,TW,5);let seed=(x*173+y*97)%11;if(seed<3){ctx.fillStyle=seed===0?'#8bc96b':'#397e4a';ctx.fillRect(px+6+seed*5,py+7+(seed*3)%16,3,3)}if(seed===7){ctx.fillStyle='#e8d78a';ctx.fillRect(px+23,py+9,3,3)}}
+ if(t==='path'){ctx.fillStyle='rgba(75,49,29,.18)';ctx.fillRect(px,py+25,TW,7);ctx.fillStyle='#a18b5e';for(let i=0;i<4;i++)ctx.fillRect(px+(x*i+7)%28,py+(y*i+9)%28,3,2)}
+ if(t==='water'){ctx.fillStyle='#174f7c';ctx.fillRect(px,py,TW,4);ctx.fillStyle='#53b0c4';ctx.fillRect(px+4,py+8+(x%3)*4,14,2);ctx.fillRect(px+17,py+23-(y%3)*3,9,2)}
+ if(t==='tree'){ctx.fillStyle='#654b35';ctx.fillRect(px+13,py+14,7,17);ctx.fillStyle='#27613e';ctx.beginPath();ctx.arc(px+16,py+12,13,0,Math.PI*2);ctx.fill();ctx.fillStyle='#388653';ctx.beginPath();ctx.arc(px+10,py+10,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#64a95b';ctx.fillRect(px+7,py+7,4,4)}
+ if(t==='rock'){ctx.fillStyle='#84969a';ctx.beginPath();ctx.moveTo(px+5,py+26);ctx.lineTo(px+8,py+12);ctx.lineTo(px+18,py+5);ctx.lineTo(px+28,py+15);ctx.lineTo(px+26,py+27);ctx.closePath();ctx.fill();ctx.fillStyle='#b1c0bd';ctx.fillRect(px+12,py+12,5,3)}
+}
+function drawChest(o){let x=o.x*TW,y=o.y*TW;if(o.opened){ctx.fillStyle='#63482d';ctx.fillRect(x-10,y-2,20,10);ctx.fillStyle='#332b28';ctx.fillRect(x-9,y-8,18,6);return}ctx.fillStyle='#402b1e';ctx.fillRect(x-13,y-7,26,19);ctx.fillStyle='#9c5829';ctx.fillRect(x-11,y-9,22,17);ctx.fillStyle='#c17b3d';ctx.fillRect(x-9,y-7,18,11);ctx.fillStyle='#6c3d22';ctx.fillRect(x-1,y-8,3,17);ctx.fillStyle='#f8d46b';ctx.fillRect(x-3,y-2,6,7);ctx.fillStyle='#ffe8a0';ctx.fillRect(x-2,y-1,3,3);ctx.fillStyle='#36271f';ctx.fillRect(x-13,y+8,26,3)}
+function drawHuman(x,y,color,klass,dir,weapon,now,playerId){
+ const px=x*TW,py=y*TW,walk=Math.sin(now/75+playerId)*2;
+ // character shadow
+ ctx.fillStyle='#112b2680';ctx.beginPath();ctx.ellipse(px,py+11,11,5,0,0,Math.PI*2);ctx.fill();
+ // boots / legs
+ ctx.fillStyle='#3a3542';ctx.fillRect(px-7,py+2,5,9+walk);ctx.fillRect(px+2,py+2,5,9-walk);
+ ctx.fillStyle='#d2b18a';ctx.fillRect(px-8,py+8+walk,7,4);ctx.fillRect(px+1,py+8-walk,7,4);
+ // torso and arms
+ ctx.fillStyle=color;ctx.fillRect(px-9,py-10,18,16);ctx.fillStyle='#ffffff35';ctx.fillRect(px-7,py-9,4,13);
+ ctx.fillStyle='#d9a77d';ctx.fillRect(px-13,py-8,4,13);ctx.fillRect(px+9,py-8,4,13);
+ // escudo na mao secundaria (lado esquerdo)
+ if(players[playerId-1]&&players[playerId-1].shield){ctx.fillStyle='#c5d7df';ctx.beginPath();ctx.moveTo(px-16,py-7);ctx.lineTo(px-23,py-4);ctx.lineTo(px-22,py+7);ctx.lineTo(px-16,py+12);ctx.lineTo(px-10,py+7);ctx.lineTo(px-9,py-4);ctx.closePath();ctx.fill();ctx.strokeStyle='#e9c66b';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#547b91';ctx.fillRect(px-17,py-3,3,8)}
+ // head / hair / face
+ ctx.fillStyle='#c98c66';ctx.fillRect(px-7,py-22,14,13);ctx.fillStyle=klass==='mage'?'#55446f':klass==='ranger'?'#5b3826':'#3d3028';ctx.fillRect(px-8,py-24,16,6);ctx.fillRect(px-8,py-19,3,4);ctx.fillRect(px+5,py-19,3,4);
+ ctx.fillStyle='#2e2633';ctx.fillRect(px-4,py-17,2,2);ctx.fillRect(px+3,py-17,2,2);ctx.fillStyle='#f8e7c9';ctx.fillRect(px-2,py-13,5,2);
+ // belt
+ ctx.fillStyle='#4b3426';ctx.fillRect(px-8,py+1,16,3);ctx.fillStyle='#f3d46d';ctx.fillRect(px-1,py+1,3,3);
+ if(weapon&&weapon.kind==='sword'){ctx.save();ctx.translate(px+10,py-4);ctx.rotate(dir.x===-1?Math.PI/2:dir.y===-1?-Math.PI/3:Math.PI/3);ctx.fillStyle='#b9d8e6';ctx.fillRect(-1,-14,3,17);ctx.fillStyle='#e9bf6a';ctx.fillRect(-5,1,10,3);ctx.fillStyle='#69452f';ctx.fillRect(-1,4,3,5);ctx.restore()}
+ if(weapon&&weapon.kind==='staff'){ctx.strokeStyle='#95613d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px+10,py+9);ctx.lineTo(px+7,py-20);ctx.stroke();ctx.fillStyle='#8a72ff';ctx.beginPath();ctx.arc(px+7,py-22,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e6dfff';ctx.beginPath();ctx.arc(px+6,py-23,1.5,0,Math.PI*2);ctx.fill()}
+ if(weapon&&weapon.kind==='bow'){ctx.strokeStyle='#b78347';ctx.lineWidth=3;ctx.beginPath();ctx.arc(px+11,py-2,9,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.strokeStyle='#e8dfbb';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(px+11,py-11);ctx.lineTo(px+11,py+7);ctx.stroke()}
+ // colored player marker
+ ctx.strokeStyle=playerId===1?'#7ef4ff':'#ffc471';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py-5,16,0,Math.PI*2);ctx.stroke();
+ ctx.font='bold 9px Verdana';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.strokeStyle='#173047';ctx.lineWidth=2;ctx.strokeText(playerId===1?'J1':'J2',px,py+23);ctx.fillText(playerId===1?'J1':'J2',px,py+23)
+}
+function drawPlayer(p,now){drawHuman(p.x,p.y,p.color,p.klass,p.dir,p.weapon,now,p.id)}
+function drawThing(o,now){
+ let x=o.x*TW,y=o.y*TW;
+ if(o.type==='chest'){drawChest(o);return}
+ if(['shop','guild','blacksmith','clinic','inn','elder'].includes(o.type)){drawBuilding(o);return}
+ if(o.type==='monster'){drawMonster(o,now);return}
+ if(o.type==='animal'){ctx.font='25px "Segoe UI Emoji"';ctx.textAlign='center';ctx.fillText(['🐇','🦊','🦌','🐢'][Math.abs(Math.floor(o.x*7+o.y*11))%4],x,y+4);return}
+ if(o.type==='herb'){ctx.font='23px "Segoe UI Emoji"';ctx.textAlign='center';ctx.fillText('🌿',x,y+4)}
+}
+function drawBuilding(o){
+ const x=o.x*TW,y=o.y*TW;
+ const cfg={shop:{wall:'#a86d43',roof:'#813e2d',trim:'#f4c17b',label:'LOJA DA LUMA'},guild:{wall:'#8a7ca8',roof:'#4e477b',trim:'#d9c6ff',label:'GUILDA'},blacksmith:{wall:'#69727e',roof:'#394654',trim:'#f7a75b',label:'FORJA'},clinic:{wall:'#e3d8b9',roof:'#4c8e76',trim:'#d5ffe9',label:'CURANDEIRA'},inn:{wall:'#d4a36d',roof:'#8c5434',trim:'#ffe5a8',label:'POUSADA'},elder:{wall:'#a8b982',roof:'#6f854a',trim:'#efffc0',label:'ANCIÃ'}}[o.type];
+ // Larger 2.5D-style building with roof, walls, windows and doorway.
+ ctx.fillStyle='#14263888';ctx.fillRect(x-29,y-1,58,33);
+ ctx.fillStyle='#573c2b';ctx.fillRect(x-25,y-29,50,57);
+ ctx.fillStyle=cfg.wall;ctx.fillRect(x-27,y-36,54,54);
+ ctx.fillStyle=cfg.roof;ctx.beginPath();ctx.moveTo(x-34,y-30);ctx.lineTo(x,y-53);ctx.lineTo(x+34,y-30);ctx.closePath();ctx.fill();
+ ctx.fillStyle=cfg.trim;ctx.fillRect(x-29,y-32,58,4);ctx.fillStyle='#ffffff20';ctx.fillRect(x-23,y-23,4,34);
+ ctx.fillStyle='#243b4c';ctx.fillRect(x-18,y-18,10,11);ctx.fillRect(x+8,y-18,10,11);ctx.fillStyle='#a8dbea';ctx.fillRect(x-16,y-16,6,7);ctx.fillRect(x+10,y-16,6,7);
+ ctx.fillStyle='#573d2e';ctx.fillRect(x-6,y-2,12,20);ctx.fillStyle='#d9b16d';ctx.fillRect(x+2,y+7,2,2);
+ ctx.fillStyle='#2a1f2a';ctx.fillRect(x-29,y+17,58,4);
+ ctx.font='bold 10px Verdana';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='#142638';ctx.fillStyle='#fff';ctx.strokeText(cfg.label,x,y-58);ctx.fillText(cfg.label,x,y-58);
+ // NPC stands in front of the building with a recognizable silhouette.
+ let npcColor={shop:'#ebba72',guild:'#b8a7e9',blacksmith:'#e18d58',clinic:'#b7f0d0',inn:'#f3c08a',elder:'#c7d98d'}[o.type];
+ ctx.fillStyle='#2c2730';ctx.fillRect(x-7,y+25,5,9);ctx.fillRect(x+2,y+25,5,9);ctx.fillStyle=npcColor;ctx.fillRect(x-10,y+11,20,16);ctx.fillStyle='#cb9067';ctx.fillRect(x-7,y+1,14,12);ctx.fillStyle=o.type==='elder'?'#ddd2ae':o.type==='guild'?'#483b60':'#49382f';ctx.fillRect(x-8,y,16,5);ctx.fillStyle='#253243';ctx.fillRect(x-4,y+5,2,2);ctx.fillRect(x+3,y+5,2,2);
+ ctx.font='bold 9px Verdana';ctx.strokeStyle='#142638';ctx.lineWidth=3;ctx.strokeText(o.npc||'NPC',x,y+44);ctx.fillStyle='#fff';ctx.fillText(o.npc||'NPC',x,y+44);
+}
+function drawMonster(o,now){
+ const x=o.x*TW,y=o.y*TW;let hp=Math.max(0,o.hp||50),max=o.maxHp||50;
+ // distinctive custom slime enemy
+ ctx.fillStyle='#172b3580';ctx.beginPath();ctx.ellipse(x,y+10,14,5,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=o.color||'#a747ca';ctx.beginPath();ctx.moveTo(x-14,y+7);ctx.quadraticCurveTo(x-17,y-12,x-2,y-15);ctx.quadraticCurveTo(x+14,y-17,x+14,y+7);ctx.closePath();ctx.fill();
+ ctx.fillStyle='#e6a8f5';ctx.fillRect(x-8,y-9,5,3);ctx.fillRect(x+4,y-9,5,3);ctx.fillStyle='#341e49';ctx.fillRect(x-6,y-8,3,4);ctx.fillRect(x+5,y-8,3,4);
+ // health bar above every living monster
+ ctx.fillStyle='#241d2a';ctx.fillRect(x-16,y-24,32,5);ctx.fillStyle='#fa4d69';ctx.fillRect(x-15,y-23,30*Math.max(0,hp/max),3);ctx.strokeStyle='#f9e7ff';ctx.lineWidth=1;ctx.strokeRect(x-16,y-24,32,5);
+}
+function drawBoss(b,now){
+ const x=b.x*TW,y=b.y*TW;
+ if(b.id==='ayla'){
+  const img=$('aylaPortrait');if(img.complete&&img.naturalWidth){ctx.save();ctx.beginPath();ctx.ellipse(x,y,36,28,0,0,Math.PI*2);ctx.clip();ctx.drawImage(img,x-36,y-28,72,56);ctx.restore();ctx.strokeStyle='#ffd166';ctx.lineWidth=3;ctx.strokeRect(x-37,y-29,74,58)}else{ctx.font='43px "Segoe UI Emoji"';ctx.textAlign='center';ctx.fillText('🐋',x,y+8)}
+ }else{
+  ctx.fillStyle='#1e2c37aa';ctx.beginPath();ctx.ellipse(x,y+14,22,7,0,0,Math.PI*2);ctx.fill();
+  if(b.id==='slime'){ctx.fillStyle='#47d7a0';ctx.beginPath();ctx.ellipse(x,y,24,21,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(x-11,y-6,7,8);ctx.fillRect(x+5,y-6,7,8);ctx.fillStyle='#24384c';ctx.fillRect(x-9,y-4,3,4);ctx.fillRect(x+7,y-4,3,4)}
+  if(b.id==='golem'){ctx.fillStyle='#7c827c';ctx.fillRect(x-21,y-22,42,39);ctx.fillStyle='#afb3a7';ctx.fillRect(x-16,y-17,12,10);ctx.fillRect(x+5,y-17,12,10);ctx.fillStyle='#ebd06e';ctx.fillRect(x-12,y-13,4,4);ctx.fillRect(x+9,y-13,4,4);ctx.fillStyle='#4b5355';ctx.fillRect(x-26,y-5,8,22);ctx.fillRect(x+18,y-5,8,22)}
+  if(b.id==='hydra'){ctx.fillStyle='#6b4d98';ctx.beginPath();ctx.arc(x-12,y-7,12,0,Math.PI*2);ctx.arc(x,y-16,12,0,Math.PI*2);ctx.arc(x+12,y-7,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f4db75';ctx.fillRect(x-16,y-9,4,4);ctx.fillRect(x-2,y-18,4,4);ctx.fillRect(x+10,y-9,4,4)}
+  if(b.id==='dragon'){ctx.fillStyle='#bd4438';ctx.beginPath();ctx.moveTo(x-24,y+14);ctx.lineTo(x-15,y-17);ctx.lineTo(x,y-8);ctx.lineTo(x+11,y-23);ctx.lineTo(x+24,y+9);ctx.lineTo(x+9,y+18);ctx.closePath();ctx.fill();ctx.fillStyle='#f6d16d';ctx.fillRect(x-11,y-7,6,5);ctx.fillRect(x+7,y-7,6,5);ctx.fillStyle='#81312d';ctx.fillRect(x-4,y+3,11,4)}
+ }
+ // Boss HP bar and label visible over sprite
+ ctx.textAlign='center';ctx.font='bold 11px Verdana';ctx.lineWidth=3;ctx.strokeStyle='#183047';ctx.fillStyle='#fff';ctx.strokeText(b.name,x,y-41);ctx.fillText(b.name,x,y-41);
+ ctx.fillStyle='#281927';ctx.fillRect(x-31,y-34,62,7);ctx.fillStyle='#ff4c71';ctx.fillRect(x-30,y-33,60*Math.max(0,b.currentHp/b.hp),5);ctx.strokeStyle='#ffe5e9';ctx.lineWidth=1;ctx.strokeRect(x-31,y-34,62,7);
+}
+function updateEnemyAI(now){
+ if(!gameStarted)return;
+ const active=players.slice(0,playerCount).filter(p=>p.hp>0&&!isSafeZone(p.x,p.y));
+ if(!active.length)return;
+ // Monstros detectam jogadores por proximidade e atacam sozinhos, mesmo sem terem sido atingidos.
+ for(const mob of things){
+  if(mob.type!=='monster')continue;
+  if((mob.frozenUntil||0)>Date.now()||(mob.paralyzedUntil||0)>Date.now())continue;
+  if((mob.burnUntil||0)>Date.now()&&now-(mob.lastBurnTick||0)>800){mob.lastBurnTick=now;mob.hp=Math.max(0,mob.hp-3);if(mob.hp<=0){mob.type='';checkRaidEnemyDefeated(mob);}}
+  let target=null,nearest=mob.raidId?16:(mob.name==='Slime'?2.2:12);
+  for(const p of active){const d=Math.hypot(p.x-mob.x,p.y-mob.y);if(d<nearest){nearest=d;target=p;}}
+  if(!target)continue;
+  if(mob.name==='Slime'&&!mob.raidId){if(nearest<1.65&&now-(mob.lastShot||0)>1100){mob.lastShot=now;target.hp=Math.max(0,target.hp-Math.max(1,(mob.atk||4)-((target.armor&&target.armor.defense)||0)-(target.shield?8:0)));if(target.hp<=0)playerDeath(target,'um slime');renderUI()}continue;}
+  const cooldown=mob.raidId?1250:1500;
+  if(now-(mob.lastShot||0)>=cooldown){
+   mob.lastShot=now;
+   shots.push({x:mob.x,y:mob.y,tx:target.x,ty:target.y,enemy:true,targetPlayer:target.id,speed:mob.raidId?.24:.20,damage:(mob.atk||5)+rand(4),ttl:135,color:mob.raidId?'#ffb45e':'#ff7f8c'});
+  }
+ }
+ // Chefes também iniciam o combate por conta própria quando os jogadores chegam perto.
+ for(const boss of bosses){
+  if(!boss.alive)continue;
+  if((boss.frozenUntil||0)>Date.now()||(boss.paralyzedUntil||0)>Date.now())continue;
+  if((boss.burnUntil||0)>Date.now()&&now-(boss.lastBurnTick||0)>900){boss.lastBurnTick=now;boss.currentHp=Math.max(0,boss.currentHp-4);if(boss.currentHp<=0){boss.alive=false;bossesDead[boss.id]=true;}}
+  let target=null,nearest=boss.id==='ayla'?30:24;
+  for(const p of active){const d=Math.hypot(p.x-boss.x,p.y-boss.y);if(d<nearest){nearest=d;target=p;}}
+  if(!target)continue;
+  const cooldown=boss.id==='ayla'?1050:(boss.id==='dragon'?1250:1650);
+  if(now-(boss.lastShot||0)>=cooldown){
+   boss.lastShot=now;
+   const tint=boss.id==='ayla'?'#73e6ff':boss.id==='dragon'?'#ff684f':'#e7bbff';
+   shots.push({x:boss.x,y:boss.y,tx:target.x,ty:target.y,enemy:true,targetPlayer:target.id,speed:boss.id==='ayla'?.30:.25,damage:boss.atk+rand(5),ttl:170,color:tint});
+  }
+ }
+ // Companheiros seguem a equipe e atacam automaticamente monstros próximos.
+ for(let i=0;i<pets.length;i++){const pet=pets[i];const owner=players[i%playerCount];if(!owner)continue;pet.x+=(owner.x-pet.x)*.035;pet.y+=(owner.y-pet.y)*.035;let enemy=things.find(o=>o.type==='monster'&&Math.hypot(o.x-pet.x,o.y-pet.y)<4);if(enemy&&now-(pet.lastAttack||0)>1300){pet.lastAttack=now;enemy.hp=Math.max(0,enemy.hp-9);floatText(enemy.x,enemy.y-.5,'-9','#a7ff9b');if(enemy.hp<=0){enemy.type='';const gold=enemy.reward||7;owner.gold+=gold;addXP(enemy.xp||18);progressQuest('monsters',1);checkRaidEnemyDefeated(enemy);log('🐾 '+pet.name+' ajudou a derrotar '+enemy.name+'!');renderUI();}}
+ }
+}
+function step(now){
+ if(!lastFrame)lastFrame=now;
+ updateRespawns();
+ const p1=players[0],p2=players[1];
+ if(keyState.KeyW)tryMove(p1,0,-1,now);else if(keyState.KeyS)tryMove(p1,0,1,now);else if(keyState.KeyA)tryMove(p1,-1,0,now);else if(keyState.KeyD)tryMove(p1,1,0,now);
+ if(playerCount===2){if(keyState.ArrowUp)tryMove(p2,0,-1,now);else if(keyState.ArrowDown)tryMove(p2,0,1,now);else if(keyState.ArrowLeft)tryMove(p2,-1,0,now);else if(keyState.ArrowRight)tryMove(p2,1,0,now);}
+ if(keyPressed.KeyE){interact(p1);keyPressed.KeyE=false}if(keyPressed.Enter){if(playerCount===2)interact(p2);keyPressed.Enter=false}
+ if(keyPressed.KeyQ){if(p1.hp>0&&!p1.respawning){let o=nearestHostile(p1,28);if(o)attack(p1,o,true);else note('✨ Nenhum inimigo a até 28 blocos.');}keyPressed.KeyQ=false}
+ if(keyPressed.KeyM){if(playerCount===2&&p2.hp>0&&!p2.respawning){let o=nearestHostile(p2,28);if(o)attack(p2,o,true);else note('✨ Jogador 2: nenhum inimigo a até 28 blocos.');}keyPressed.KeyM=false}
+ updateEnemyAI(now);updateProjectiles();if(now-lastDrawAt>=33){worldDraw(now);lastDrawAt=now;}if(Date.now()-lastAutoSave>12000){saveWorld(false);lastAutoSave=Date.now()}if(!$('worldMapModal').classList.contains('hidden')&&Date.now()-lastWorldMapRender>500){lastWorldMapRender=Date.now();renderWorldMap()}requestAnimationFrame(step)
+}
+window.addEventListener('error',e=>{const n=document.getElementById('notice');if(n)n.textContent='⚠️ O jogo encontrou um erro: '+(e.message||'erro de execução')+'. Tente recarregar a página.';});
+document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keyState[e.code]=true;if(!e.repeat)keyPressed[e.code]=true});
+document.addEventListener('keyup',e=>{keyState[e.code]=false});
+$('dialogueClose').onclick=()=> $('dialogueBox').classList.add('hidden');
+$('applyAvatars').onclick=()=>{players[0].name=$('name1').value.trim()||'Jogador 1';players[1].name=$('name2').value.trim()||'Jogador 2';players[0].klass=$('class1').value;players[1].klass=$('class2').value;players[0].color=$('color1').value;players[1].color=$('color2').value;renderUI();note('✨ Avatares atualizados! Os dois personagens estão prontos para a aventura.');log('🧑‍🤝‍🧑 Avatares personalizados.');saveWorld(false)}
+$('raidForest').onclick=()=>startRaid('forest');$('raidRuins').onclick=()=>startRaid('ruins');$('raidDragon').onclick=()=>startRaid('dragon');
+
+ $('sprint1').onclick=()=>{players[0].sprinting=!players[0].sprinting;renderUI();note(players[0].sprinting?'🏃 Jogador 1 está correndo!':'🚶 Jogador 1 voltou à velocidade normal.')};
+ $('sprint2').onclick=()=>{players[1].sprinting=!players[1].sprinting;renderUI();note(players[1].sprinting?'🏃 Jogador 2 está correndo!':'🚶 Jogador 2 voltou à velocidade normal.')};
+$('newWorld').onclick=()=>{try{localStorage.removeItem(SAVE_KEY)}catch(e){}boatUnlocked=false;tameItems=0;pets=[];magicElement='fire';bossesDead={};quest=null;questDone={};raidState=null;raidSerial=0;sharedXP=0;players.forEach((p,i)=>{p.gold=60;p.sprinting=false;p.hp=p.maxHp=100;p.respawning=false;p.respawnAt=0;p.baseAtk=8;p.potions=2;p.weapon={name:'Espada de madeira',kind:'sword',power:0,price:0};p.weapons=[{name:'Espada de madeira',kind:'sword',power:0,price:0}];p.relics=[];p.shield=false;p.armor={name:'Roupa simples',defense:0,price:0};p.x=i===0?11.5:13.5;p.y=13.5});generateWorld();saveWorld(false);log('🌍 Novo mapa pronto! O mundo anterior foi substituído por um novo.');note('🌍 Novo mundo criado e salvo automaticamente.')}
+function startGame(count){playerCount=count;gameStarted=true;$('startScreen').classList.add('hidden');$('p2name').closest('.playercard').classList.toggle('hidden',count===1);$('sprint2').classList.toggle('hidden',count===1);$('hotbar2').classList.toggle('hidden',count===1);$('class2').disabled=count===1;$('name2').disabled=count===1;$('color2').disabled=count===1;const head=document.querySelector('header p');head.textContent=count===1?'Aventura solo · WASD para mover · E para interagir · Q para cajado/arco':'Aventura cooperativa · WASD + setas · Q (J1) / M (J2) para cajado/arco';note(count===1?'🧙 Aventura solo iniciada!':'🧑‍🤝‍🧑 Aventura para dois jogadores iniciada!');log(count===1?'🎮 Modo solo escolhido.':'🎮 Modo cooperativo para dois jogadores escolhido.');renderUI()}
+$('openInventory').onclick=()=>{$('inventoryModal').classList.remove('hidden');renderInventory()};$('upgradeGear').onclick=()=>{players.slice(0,playerCount).forEach(p=>{const cost=Math.max(35,Math.floor((p.weapon.price||60)*.35));if(p.gold>=cost){p.gold-=cost;p.weapon.power=Math.ceil((p.weapon.power||0)*1.18+2);if(p.weapon.durability!==undefined)p.weapon.durability=Math.min(durabilityMax(p.weapon),p.weapon.durability+20);const stored=(p.weapons||[]).find(w=>w.kind===p.weapon.kind);if(stored){stored.power=p.weapon.power;stored.durability=p.weapon.durability}log('⚒️ '+p.name+' melhorou '+p.weapon.name+'! Poder agora '+p.weapon.power+'.');}else note(p.name+' precisa de '+cost+' moedas para melhorar a arma.');});renderUI();renderInventory();saveWorld(false)};$('repairGear').onclick=()=>{players.slice(0,playerCount).forEach(p=>{const cost=Math.max(5,Math.floor((p.weapon.price||40)*.12));if(p.gold>=cost){p.gold-=cost;if(p.weapon)p.weapon.durability=durabilityMax(p.weapon);(p.weapons||[]).forEach(w=>w.durability=durabilityMax(w));p.shieldDurability=120;log('🔧 '+p.name+' reparou os equipamentos por '+cost+' moedas.')}else note(p.name+' não tem moedas suficientes para reparar.');});renderUI();renderInventory();saveWorld(false)};$('closeInventory').onclick=()=> $('inventoryModal').classList.add('hidden');$('inventoryModal').addEventListener('click',e=>{if(e.target===$('inventoryModal'))$('inventoryModal').classList.add('hidden')});
+$('openWorldMap').onclick=()=>{$('worldMapModal').classList.remove('hidden');lastWorldMapRender=Date.now();renderWorldMap()};$('closeWorldMap').onclick=()=> $('worldMapModal').classList.add('hidden');$('worldMapModal').addEventListener('click',e=>{if(e.target===$('worldMapModal'))$('worldMapModal').classList.add('hidden')});
+const HOTBAR_VIS_KEY='aylaHotbarHidden';function setHotbarVisible(visible){const bars=$('hotbars'),btn=$('toggleHotbarButton');if(!bars||!btn)return;bars.classList.toggle('hidden',!visible);btn.textContent=visible?'🙈 Ocultar hotbar':'👁️ Mostrar hotbar';btn.setAttribute('aria-pressed',String(!visible));try{localStorage.setItem(HOTBAR_VIS_KEY,visible?'0':'1')}catch(e){}}
+let hotbarHidden=false;try{hotbarHidden=localStorage.getItem(HOTBAR_VIS_KEY)==='1'}catch(e){}setHotbarVisible(!hotbarHidden);$('toggleHotbarButton').onclick=()=>setHotbarVisible($('hotbars').classList.contains('hidden'));
+$('saveWorldButton').onclick=()=>saveWorld(true);window.addEventListener('beforeunload',()=>saveWorld(false));document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('inventoryModal').classList.add('hidden');$('worldMapModal').classList.add('hidden')}});
+$('startSolo').onclick=()=>startGame(1);$('startDuo').onclick=()=>startGame(2);
+$('magicElement').value=magicElement;$('magicElement').onchange=()=>{magicElement=$('magicElement').value;note('✨ Magia selecionada: '+({fire:'Fogo: queima inimigos',ice:'Gelo: congela inimigos',lightning:'Raio: paralisa inimigos'}[magicElement]));saveWorld(false)};
+$('tameButton').onclick=()=>{if(tameItems<=0){note('🦴 Derrote monstros para encontrar Selos de Domesticação.');return}tameItems--;const pet={id:Date.now()+Math.random(),name:['Lobo','Raposa','Coelho guardião'][pets.length%3],x:players[0].x,y:players[0].y,lastAttack:0};pets.push(pet);players[0].pets=players[0].pets||[];log('🐾 Você domesticou '+pet.name+'! Ele seguirá os jogadores e ajudará nas batalhas.');note('🐾 Companheiro domesticado!');renderUI();saveWorld(false)};
+$('boatButton').onclick=()=>{if(!boatUnlocked)return;const p=players[0];const side=p.x<68;const targetX=side?76:62;p.x=targetX;p.y=65.5;players[1].x=targetX+1.5;players[1].y=65.5;log('⛵ A equipe atravessou o rio de barco e chegou à '+(side?'segunda região':'primeira região')+'.');note('⛵ Travessia concluída!');renderUI();saveWorld(false)};
+setTimeout(function(){try{ /* Ignora salvamento antigo potencialmente corrompido; cria mundo limpo. */ generateWorld(); renderUI(); note('🌟 Mundo novo pronto! Escolha solo ou dupla.'); log('🌍 Mundo novo inicializado.'); requestAnimationFrame(step); }catch(err){var msg=(err&&err.message?err.message:String(err));var n=document.getElementById('notice');if(n)n.textContent='Erro ao iniciar: '+msg;var sc=document.getElementById('startScreen');if(sc){sc.innerHTML='<div class="startcard"><h2>Erro ao iniciar o jogo</h2><p>'+msg.replace(/[<>&]/g,'')+'</p><p>Feche esta aba e abra o arquivo novamente.</p></div>';sc.style.display='flex';} console.error(err);}}, 80);
+})(); } catch(err) { var sc=document.getElementById('startScreen'); if(sc){var msg=(err&&err.message?err.message:String(err));sc.innerHTML='<div class="startcard"><h2>Erro ao carregar Ilhas de Ayla</h2><p>'+msg.replace(/[<>&]/g,'')+'</p><p>Esta mensagem ajuda a localizar o problema.</p></div>';sc.style.display='flex';} console.error(err); } }, 100);
+</script>
+</body></html>
